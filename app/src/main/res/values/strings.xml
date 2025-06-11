@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">MyProject</string>
+    <string name="navigation_drawer_open">Apri menu</string>
+    <string name="navigation_drawer_close">Chiudi menu</string>
 </resources>

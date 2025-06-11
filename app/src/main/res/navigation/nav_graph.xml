@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph.xml"
+    app:startDestination="@id/map_layout"
+    >
+
+    <fragment
+        android:id="@+id/map_layout"
+        tools:layout="@layout/map_layout"
+        android:name="com.example.myproject.ui.map.MapFragment"/>
+    <fragment
+        android:id="@+id/nav_add_description"
+        android:name="com.example.myproject.DescriptionFragment"
+        tools:layout="@layout/nav_add_description" />
+
+    <fragment
+        android:id="@+id/nav_statistics"
+        android:name="com.example.myproject.ui.Statistics.StatisticsFragment"
+        tools:layout="@layout/nav_statistics" />
+
+    <fragment
+        android:id="@+id/nav_add_photo"
+        android:name="com.example.myproject.ui.Photo.AddPhotoFragment"
+        tools:layout="@layout/nav_add_photo"/>
+
+    <fragment
+        android:id="@+id/nav_program_trip"
+        android:name="com.example.myproject.ui.ProgramTrip.ProgramTripFragment"
+        tools:layout="@layout/nav_program_trip"/>
+</navigation>
