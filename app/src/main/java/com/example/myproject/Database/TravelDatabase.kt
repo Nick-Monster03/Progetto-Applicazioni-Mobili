@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.myproject.Database.Dao.PhotoDao
 import com.example.myproject.Database.Dao.PlaceDao
@@ -17,7 +18,7 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 @Database(
-    entities = [Trip::class, Place::class, Photo::class, TripPlace::class], version = 1, exportSchema = false)
+    entities = [Trip::class, Place::class, Photo::class, TripPlace::class], version = 2, exportSchema = false)
 
 abstract class TravelDatabase : RoomDatabase() {
 
@@ -31,6 +32,12 @@ abstract class TravelDatabase : RoomDatabase() {
         private var INSTANCE: TravelDatabase? = null
         private const val N_THREADS = 4
         val databaseWriteExecutor: ExecutorService = Executors.newFixedThreadPool(N_THREADS)
+
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE trip_table ADD COLUMN description TEXT")
+            }
+        }
 
         private val sRoomDatabaseCallback = object : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
@@ -49,7 +56,7 @@ abstract class TravelDatabase : RoomDatabase() {
                     context.applicationContext,
                     TravelDatabase::class.java,
                     "travel_database"
-                ).build()
+                ).addMigrations(MIGRATION_1_2).build()
                 INSTANCE = instance
                 instance
             }

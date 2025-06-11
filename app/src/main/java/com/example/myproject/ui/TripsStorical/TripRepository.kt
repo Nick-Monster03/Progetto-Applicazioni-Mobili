@@ -1,10 +1,19 @@
-package com.example.myproject
+package com.example.myproject.ui.TripsStorical
 
+import android.app.Application
 import androidx.lifecycle.LiveData
 import com.example.myproject.Database.Dao.TripDao
 import com.example.myproject.Database.Entities.Trip
+import com.example.myproject.Database.TravelDatabase
 
-class TripRepository(private val tripDao: TripDao) {
+class TripRepository(app: Application) {
+
+    var tripDao: TripDao
+
+    init {
+        val db = TravelDatabase.getDatabase(app)
+        tripDao = db.tripDao()
+    }
 
     fun insertTrip(trip: Trip) {
         tripDao.insert(trip)
@@ -24,6 +33,10 @@ class TripRepository(private val tripDao: TripDao) {
 
     fun updateTrip(id: Int, destination: String, endDate: String) {
         tripDao.updateTrip(id, destination, endDate)
+    }
+
+    fun addDescription(id: Int, description: String){
+        tripDao.addDescription(id, description)
     }
 
 }

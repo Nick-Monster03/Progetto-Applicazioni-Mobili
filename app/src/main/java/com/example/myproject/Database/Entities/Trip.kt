@@ -10,5 +10,6 @@ class Trip(
     val destination: String,
     val startDate: String,
     val endDate: String,
+    val description: String?,
     val type: TripType
 )

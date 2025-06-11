@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.os.Bundle
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -51,6 +52,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     private lateinit var placeDao: PlaceDao
     private lateinit var tripDao: TripDao
     private lateinit var trip_placeDao: TripPlaceDao
+    private var isTripRunning: Boolean= false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -60,7 +62,15 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
         val btnStartAndStop = view.findViewById<Button>(R.id.StartAndStopButton)
         val textView = view.findViewById<TextView>(R.id.textView)
-
+        val prefs = requireContext().getSharedPreferences("trip_prefs", Context.MODE_PRIVATE)
+        isTripRunning = prefs.getBoolean("trip_running", false)
+        if (isTripRunning) {
+            btnStartAndStop.text = "Stop"
+            textView.text = "Interrompi Viaggio"
+        } else {
+            btnStartAndStop.text = "Start"
+            textView.text = "Avvia il tuo Viaggio"
+        }
         db = TravelDatabase.getDatabase(requireContext())
         placeDao = db.placeDao()
         tripDao = db.tripDao()
@@ -106,9 +116,15 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             }
         }
 
+
         btnStartAndStop.setOnClickListener {
             Toast.makeText(requireContext(), "Percorso avviato partendo dalla tua posizione attuale", Toast.LENGTH_LONG).show()
+            val prefs = requireContext().getSharedPreferences("trip_prefs", Context.MODE_PRIVATE)
+            val editor = prefs.edit()
             if (btnStartAndStop.text == "Stop") {
+                isTripRunning = false
+                editor.putBoolean("trip_running", false)
+                editor.apply()
                 btnStartAndStop.text = "Start"
                 textView.text = "Avvia il tuo Viaggio"
                 getCurrentPlace { place ->
@@ -116,6 +132,9 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                 }
             } else {
                 btnStartAndStop.text = "Stop"
+                isTripRunning = true
+                editor.putBoolean("trip_running", true)
+                editor.apply()
                 textView.text = "Interrompi Viaggio"
                 getCurrentPlace { place ->
                     place?.let { startTrip(it) }
@@ -135,6 +154,23 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             .tilt(30f)
             .build()
         googleMap.moveCamera(CameraUpdateFactory.newCameraPosition(position))
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (ActivityCompat.checkSelfPermission(
+                requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (!isTripRunning) {
+            fusedLocationClient.removeLocationUpdates(locationCallback)
+        }
     }
 
     private fun getCurrentPlace(callback: (Place?) -> Unit) {
@@ -163,7 +199,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
     private fun startTrip(currentPlace: Place) {
         val todayDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-        val trip = Trip(0, currentPlace.name, "", todayDate, "", TripType.NO_PROGRAM)
+        val trip = Trip(0, currentPlace.name, "", todayDate, "", "",TripType.NO_PROGRAM)
 
         CoroutineScope(Dispatchers.IO).launch {
             placeDao.insert(currentPlace)

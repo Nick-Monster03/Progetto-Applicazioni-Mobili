@@ -1,4 +1,5 @@
 package com.example.myproject.Database.Dao
+import android.credentials.CredentialDescription
 import androidx.lifecycle.LiveData
 import androidx.room.Dao
 import androidx.room.Insert
@@ -26,5 +27,8 @@ interface TripDao {
 
     @Query("DELETE FROM trip_table WHERE id = :id")
     fun delete(id: Int)
+
+    @Query("UPDATE trip_table SET description = :description WHERE id= :id")
+    fun addDescription(id: Int, description: String)
 
 }
