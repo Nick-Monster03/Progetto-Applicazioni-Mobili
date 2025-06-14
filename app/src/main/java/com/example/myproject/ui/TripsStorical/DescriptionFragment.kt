@@ -31,7 +31,6 @@ class DescriptionFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         // Crea ViewModel con factory
-        val db = TravelDatabase.getDatabase(requireContext().applicationContext)
         val repository = TripRepository(requireActivity().application)
         val factory = TripViewModel.TripViewModelFactory(repository)
         tripViewModel = ViewModelProvider(this, factory)[TripViewModel::class.java]

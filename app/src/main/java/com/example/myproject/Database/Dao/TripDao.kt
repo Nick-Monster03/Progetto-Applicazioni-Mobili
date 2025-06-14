@@ -14,9 +14,9 @@ interface TripDao {
     fun getListOfTrips(): LiveData<List<Trip>>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    fun insert(trip: Trip)
+    fun insert(trip: Trip): Long
 
-    @Query("SELECT MAX(id) FROM trip_table")
+    @Query("SELECT MAX(id) FROM trip_table WHERE destination = null OR destination = ''")
     fun getLastTripId(): Int
 
     @Query("SELECT * FROM trip_table WHERE type = :type")
@@ -30,5 +30,11 @@ interface TripDao {
 
     @Query("UPDATE trip_table SET description = :description WHERE id= :id")
     fun addDescription(id: Int, description: String)
+
+    @Query("SELECT id FROM trip_table WHERE (type = 'NO_PROGRAM' AND (destination IS NULL OR destination = '')) OR (date(startDate) <= date('now') AND date(endDate) >= date('now')) ORDER BY id DESC LIMIT 1")
+    fun getCurrentTripId(): Int?
+
+    @Query("SELECT count(*) FROM trip_table WHERE (type = 'NO_PROGRAM' AND (destination IS NULL OR destination = '')) OR (date(startDate) <= date('now') AND date(endDate) >= date('now')) ORDER BY id DESC LIMIT 1")
+    fun getNumberCurrentTrip(): Int
 
 }

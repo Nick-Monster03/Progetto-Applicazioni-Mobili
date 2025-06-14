@@ -2,4 +2,9 @@
     <string name="app_name">MyProject</string>
     <string name="navigation_drawer_open">Apri menu</string>
     <string name="navigation_drawer_close">Chiudi menu</string>
+    <string-array name="trip_types">
+        <item>LOCAL</item>
+        <item>EXCURSION</item>
+        <item>JOURNEY</item>
+    </string-array>
 </resources>

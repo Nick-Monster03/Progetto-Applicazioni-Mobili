@@ -1,12 +1,20 @@
 package com.example.myproject.repository
 
+import android.app.Application
 import androidx.lifecycle.LiveData
 import com.example.myproject.Database.Entities.Place
 import com.example.myproject.Database.Dao.PlaceDao
+import com.example.myproject.Database.TravelDatabase
 
-class PlaceRepository(private val placeDao: PlaceDao) {
+class PlaceRepository(app: Application) {
 
-    val allPlaces: LiveData<List<Place>> = placeDao.getListOfPlaces()
+    var placeDao: PlaceDao
+
+    init {
+        val db = TravelDatabase.getDatabase(app)
+        placeDao = db.placeDao()
+    }
+
 
     fun insert(place: Place) {
         placeDao.insert(place)
@@ -16,7 +24,15 @@ class PlaceRepository(private val placeDao: PlaceDao) {
         placeDao.deletePlaceById(id)
     }
 
-    fun getPlace(place : Place) {
-        placeDao.getPlacesByCoordinates(latitudine = place.latitudine, longitudine = place.longitudine)
+    fun getPlaceId(place : Place): Int {
+        return placeDao.getPlacesByCoordinates(latitudine = place.latitudine, longitudine = place.longitudine)
+    }
+
+    fun getAllPlaces(): LiveData<List<Place>> {
+        return placeDao.getListOfPlaces()
+    }
+
+    fun existsPlace(place: Place): Boolean {
+        return placeDao.getCountPlacesByCoordinates(latitudine = place.latitudine, longitudine = place.longitudine) > 0
     }
 }

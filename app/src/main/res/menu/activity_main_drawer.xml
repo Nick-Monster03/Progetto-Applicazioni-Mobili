@@ -23,6 +23,6 @@
         <item
             android:id="@+id/nav_add_description"
             android:icon="@drawable/add_description"
-            android:title="Aggiungi Descrizione" />
+            android:title="Viaggi Passati" />
     </group>
 </menu>

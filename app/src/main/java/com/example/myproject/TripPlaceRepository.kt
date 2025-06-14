@@ -1,10 +1,19 @@
 package com.example.myproject
 
+import android.app.Application
 import androidx.lifecycle.LiveData
 import com.example.myproject.Database.Dao.TripPlaceDao
 import com.example.myproject.Database.Entities.TripPlace
+import com.example.myproject.Database.TravelDatabase
 
-class TripPlaceRepository(private val tripPlaceDao: TripPlaceDao) {
+class TripPlaceRepository(app:Application) {
+
+    var tripPlaceDao: TripPlaceDao
+
+    init {
+        val db = TravelDatabase.getDatabase(app)
+        tripPlaceDao = db.tripPlaceDao()
+    }
 
     fun getAllTripPlaces(): LiveData<List<TripPlace>> {
         return tripPlaceDao.getAllTripPlaces()

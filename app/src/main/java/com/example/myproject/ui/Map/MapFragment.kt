@@ -59,7 +59,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.map_layout, container, false)
-
+        //Log.e("TRIPID", TRIP_ID.toString())
         val btnStartAndStop = view.findViewById<Button>(R.id.StartAndStopButton)
         val textView = view.findViewById<TextView>(R.id.textView)
         val prefs = requireContext().getSharedPreferences("trip_prefs", Context.MODE_PRIVATE)

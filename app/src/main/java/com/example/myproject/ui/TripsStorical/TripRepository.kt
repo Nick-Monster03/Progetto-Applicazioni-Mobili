@@ -15,8 +15,8 @@ class TripRepository(app: Application) {
         tripDao = db.tripDao()
     }
 
-    fun insertTrip(trip: Trip) {
-        tripDao.insert(trip)
+    fun insertTrip(trip: Trip): Long {
+        return tripDao.insert(trip)
     }
 
     fun getAllTrips(): LiveData<List<Trip>> {
@@ -37,6 +37,14 @@ class TripRepository(app: Application) {
 
     fun addDescription(id: Int, description: String){
         tripDao.addDescription(id, description)
+    }
+
+    fun getCurrentTripId(): Int{
+        return tripDao.getCurrentTripId() ?: -1
+    }
+
+    fun countCurrentTrip(): Int {
+        return tripDao.getNumberCurrentTrip()
     }
 
 }
