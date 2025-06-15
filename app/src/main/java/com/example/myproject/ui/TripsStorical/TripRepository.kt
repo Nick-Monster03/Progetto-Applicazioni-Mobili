@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.LiveData
 import com.example.myproject.Database.Dao.TripDao
 import com.example.myproject.Database.Entities.Trip
+import com.example.myproject.Database.Entities.TripType
 import com.example.myproject.Database.TravelDatabase
 
 class TripRepository(app: Application) {
@@ -45,6 +46,11 @@ class TripRepository(app: Application) {
 
     fun countCurrentTrip(): Int {
         return tripDao.getNumberCurrentTrip()
+    }
+
+    fun getFilteredTrips(type: TripType?, fromDate: String?, toDate: String?
+    ): LiveData<List<Trip>> {
+        return tripDao.getFilteredTrips(type, fromDate, toDate)
     }
 
 }

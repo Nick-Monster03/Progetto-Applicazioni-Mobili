@@ -5,6 +5,40 @@
     android:orientation="vertical"
     android:padding="12dp">
 
+    <Spinner
+        android:id="@+id/spinner_trip_type"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:minHeight="48dp" />
+
+    <EditText
+        android:id="@+id/edittext_start_date_filter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:hint="Filtra per data di partenza (yyyy-MM-dd)"
+        android:inputType="date"
+        android:minHeight="48dp" />
+
+    <EditText
+        android:id="@+id/edittext_destination_date_filter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:hint="Filtra per data di destinazione (yyyy-MM-dd)"
+        android:inputType="date"
+        android:minHeight="48dp" />
+
+    <Button
+        android:id="@+id/btn_filter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        android:layout_marginBottom="16dp"
+        android:text="Filtra"
+        android:backgroundTint="@color/green" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_trips"
         android:layout_width="match_parent"

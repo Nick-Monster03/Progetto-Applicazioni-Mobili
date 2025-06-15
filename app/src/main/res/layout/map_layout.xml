@@ -29,6 +29,22 @@
         android:textSize="24sp"
         android:textStyle="bold" />
 
+    <ImageButton
+        android:id="@+id/button_add_photo"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp"
+        android:backgroundTint="@color/cyan"
+        android:background="@drawable/circular_button"
+        android:contentDescription="Aggiungi foto"
+        android:scaleType="centerInside"
+        android:padding="10dp"
+        android:src="@drawable/baseline_add_a_photo_24"
+        app:layout_constraintBottom_toTopOf="@+id/textView"
+        app:layout_constraintEnd_toEndOf="parent"
+        />
+
     <Button
         android:id="@+id/StartAndStopButton"
         android:layout_width="0dp"

@@ -37,4 +37,7 @@ interface TripDao {
     @Query("SELECT count(*) FROM trip_table WHERE (type = 'NO_PROGRAM' AND (destination IS NULL OR destination = '')) OR (date(startDate) <= date('now') AND date(endDate) >= date('now')) ORDER BY id DESC LIMIT 1")
     fun getNumberCurrentTrip(): Int
 
+    @Query("SELECT * FROM trip_table WHERE (:type IS NULL OR type = :type) AND (:fromDate IS NULL OR date(startDate) >= date(:fromDate)) AND (:toDate IS NULL OR date(startDate) <= date(:toDate))")
+    fun getFilteredTrips(type: TripType?, fromDate: String?, toDate: String?): LiveData<List<Trip>>
+
 }

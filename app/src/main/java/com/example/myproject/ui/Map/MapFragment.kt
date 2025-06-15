@@ -6,24 +6,20 @@ import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.os.Bundle
 import android.os.Looper
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import com.example.myProject.R
 import com.example.myproject.Database.Entities.Place
-import com.example.myproject.Database.Dao.PlaceDao
-import com.example.myproject.Database.TravelDatabase
-import com.example.myproject.Database.Entities.Trip
-import com.example.myproject.Database.Dao.TripDao
-import com.example.myproject.Database.Entities.TripPlace
-import com.example.myproject.Database.Dao.TripPlaceDao
-import com.example.myproject.Database.Entities.TripType
 import com.google.android.gms.location.*
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -31,72 +27,58 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import java.io.IOException
-import java.text.SimpleDateFormat
 import java.util.*
 
 class MapFragment : Fragment(), OnMapReadyCallback {
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private lateinit var geofencingClient: GeofencingClient
-    private lateinit var locationRequest: LocationRequest
     private lateinit var locationCallback: LocationCallback
+    private lateinit var viewModel: MapViewModel
 
-    private var LOCATION = LatLng(44.496781, 11.356387)
-    private var TRIP_ID = -1
 
-    private lateinit var db: TravelDatabase
-    private lateinit var placeDao: PlaceDao
-    private lateinit var tripDao: TripDao
-    private lateinit var trip_placeDao: TripPlaceDao
-    private var isTripRunning: Boolean= false
+    private lateinit var btnStartAndStop: Button
+    private lateinit var textView: TextView
+    private lateinit var btn_photo: ImageButton
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.map_layout, container, false)
-        //Log.e("TRIPID", TRIP_ID.toString())
-        val btnStartAndStop = view.findViewById<Button>(R.id.StartAndStopButton)
-        val textView = view.findViewById<TextView>(R.id.textView)
-        val prefs = requireContext().getSharedPreferences("trip_prefs", Context.MODE_PRIVATE)
-        isTripRunning = prefs.getBoolean("trip_running", false)
-        if (isTripRunning) {
-            btnStartAndStop.text = "Stop"
-            textView.text = "Interrompi Viaggio"
-        } else {
-            btnStartAndStop.text = "Start"
-            textView.text = "Avvia il tuo Viaggio"
-        }
-        db = TravelDatabase.getDatabase(requireContext())
-        placeDao = db.placeDao()
-        tripDao = db.tripDao()
-        trip_placeDao = db.tripPlaceDao()
+        val factory = MapViewModel.MapViewModelFactory(requireActivity().application)
+        viewModel = ViewModelProvider(this, factory)[MapViewModel::class.java]
+        btnStartAndStop = view.findViewById(R.id.StartAndStopButton)
+        btn_photo = view.findViewById(R.id.button_add_photo)
+        textView = view.findViewById(R.id.textView)
 
-        geofencingClient = LocationServices.getGeofencingClient(requireContext())
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
-
-        locationRequest = LocationRequest.Builder(1000)
-            .setPriority(Priority.PRIORITY_HIGH_ACCURACY)
-            .build()
 
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
                 for (location in result.locations) {
-                    // eventuale aggiornamento della UI
+                    val latLng = LatLng(location.latitude, location.longitude)
+                    viewModel.updateLocation(latLng)
                 }
             }
         }
 
         if (ActivityCompat.checkSelfPermission(
                 requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+            ) == PackageManager.PERMISSION_GRANTED ||
+            ActivityCompat.checkSelfPermission(
                 requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
+            ) == PackageManager.PERMISSION_GRANTED
         ) {
+            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                if (location != null) {
+                    val latLng = LatLng(location.latitude, location.longitude)
+                    viewModel.updateLocation(latLng)
+                    val mapFragment = childFragmentManager.findFragmentById(R.id.map) as? SupportMapFragment
+                    mapFragment?.getMapAsync(this@MapFragment)
+                }
+            }
+        } else {
             ActivityCompat.requestPermissions(
                 requireActivity(),
                 arrayOf(
@@ -104,78 +86,91 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                     Manifest.permission.ACCESS_COARSE_LOCATION
                 ), 1001
             )
-        } else {
-            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-                if (location != null) {
-                    LOCATION = LatLng(location.latitude, location.longitude)
-                    val mapFragment = childFragmentManager.findFragmentById(R.id.map) as? SupportMapFragment
-                    mapFragment?.getMapAsync(this)
-                } else {
-                    Log.e("GPS_TEST", "Impossibile ottenere la posizione attuale")
-                }
-            }
         }
 
+        btn_photo.setOnClickListener({Toast.makeText(requireContext(), "Aggiungi nuova foto dalla galleria", Toast.LENGTH_SHORT).show()})
 
         btnStartAndStop.setOnClickListener {
-            Toast.makeText(requireContext(), "Percorso avviato partendo dalla tua posizione attuale", Toast.LENGTH_LONG).show()
-            val prefs = requireContext().getSharedPreferences("trip_prefs", Context.MODE_PRIVATE)
-            val editor = prefs.edit()
-            if (btnStartAndStop.text == "Stop") {
-                isTripRunning = false
-                editor.putBoolean("trip_running", false)
-                editor.apply()
-                btnStartAndStop.text = "Start"
-                textView.text = "Avvia il tuo Viaggio"
-                getCurrentPlace { place ->
-                    place?.let { endTrip(it) }
-                }
-            } else {
-                btnStartAndStop.text = "Stop"
-                isTripRunning = true
-                editor.putBoolean("trip_running", true)
-                editor.apply()
-                textView.text = "Interrompi Viaggio"
-                getCurrentPlace { place ->
-                    place?.let { startTrip(it) }
+            getCurrentPlace { place ->
+                if (place != null) {
+                    if (viewModel.isTripRunning.value == true) {
+                        viewModel.stopTrip(place)
+                    } else {
+                        viewModel.startTrip(place)
+                    }
+                } else {
+                    Toast.makeText(requireContext(), "Posizione non disponibile", Toast.LENGTH_SHORT).show()
                 }
             }
         }
+
+        viewModel.isTripRunning.observe(viewLifecycleOwner, Observer { isRunning ->
+            if (isRunning) {
+                btnStartAndStop.text = "Stop"
+                textView.text = "Interrompi Viaggio"
+            } else {
+                btnStartAndStop.text = "Start"
+                textView.text = "Avvia il tuo Viaggio"
+            }
+        })
 
         return view
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
-        googleMap.mapType = GoogleMap.MAP_TYPE_HYBRID
-        val position = CameraPosition.Builder()
-            .target(LatLng(LOCATION.latitude, LOCATION.longitude))
-            .zoom(17f)
-            .bearing(90f)
-            .tilt(30f)
-            .build()
-        googleMap.moveCamera(CameraUpdateFactory.newCameraPosition(position))
+        viewModel.location.value?.let { loc ->
+            val position = CameraPosition.Builder()
+                .target(loc)
+                .zoom(17f)
+                .bearing(90f)
+                .tilt(30f)
+                .build()
+            googleMap.mapType = GoogleMap.MAP_TYPE_HYBRID
+            googleMap.moveCamera(CameraUpdateFactory.newCameraPosition(position))
+        }
     }
 
     override fun onStart() {
         super.onStart()
         if (ActivityCompat.checkSelfPermission(
                 requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED ||
+            ActivityCompat.checkSelfPermission(
+                requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
+            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000).build()
+            fusedLocationClient.requestLocationUpdates(request, locationCallback, Looper.getMainLooper())
         }
     }
 
     override fun onStop() {
         super.onStop()
-        if (!isTripRunning) {
-            fusedLocationClient.removeLocationUpdates(locationCallback)
+        fusedLocationClient.removeLocationUpdates(locationCallback)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 1001 &&
+            grantResults.isNotEmpty() &&
+            grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+        ) {
+            val mapFragment = childFragmentManager.findFragmentById(R.id.map) as? SupportMapFragment
+            mapFragment?.getMapAsync(this)
         }
     }
 
     private fun getCurrentPlace(callback: (Place?) -> Unit) {
-        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-            ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED
+        if (ActivityCompat.checkSelfPermission(
+                requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED &&
+            ActivityCompat.checkSelfPermission(
+                requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
         ) {
             callback(null)
             return
@@ -194,32 +189,6 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             } else {
                 callback(null)
             }
-        }
-    }
-
-    private fun startTrip(currentPlace: Place) {
-        val todayDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-        val trip = Trip(0, currentPlace.name, "", todayDate, "", "",TripType.NO_PROGRAM)
-
-        CoroutineScope(Dispatchers.IO).launch {
-            placeDao.insert(currentPlace)
-            val placeId = placeDao.getPlacesByCoordinates(currentPlace.latitudine, currentPlace.longitudine)
-            tripDao.insert(trip)
-            val tripId = tripDao.getLastTripId()
-            trip_placeDao.insert(TripPlace(tripId = tripId, placeId = placeId))
-            TRIP_ID = tripId
-        }
-    }
-
-    private fun endTrip(currentPlace: Place) {
-        val todayDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-
-        CoroutineScope(Dispatchers.IO).launch {
-            placeDao.insert(currentPlace)
-            val placeId = placeDao.getPlacesByCoordinates(currentPlace.latitudine, currentPlace.longitudine)
-            tripDao.updateTrip(TRIP_ID, currentPlace.name, todayDate)
-            val tripId = tripDao.getLastTripId()
-            trip_placeDao.insert(TripPlace(tripId = tripId, placeId = placeId))
         }
     }
 

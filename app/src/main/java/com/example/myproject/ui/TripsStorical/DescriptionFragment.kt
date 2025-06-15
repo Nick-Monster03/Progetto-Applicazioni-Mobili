@@ -4,6 +4,10 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.EditText
+import android.widget.Spinner
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -18,6 +22,10 @@ class DescriptionFragment : Fragment() {
 
     private lateinit var tripViewModel: TripViewModel
     private lateinit var tripAdapter: TripAdapter
+    private lateinit var btn_filter: Button
+    private lateinit var spinnerTipo: Spinner
+    private lateinit var editDataStart: EditText
+    private lateinit var editDataDestination: EditText
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -29,7 +37,20 @@ class DescriptionFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        spinnerTipo = view.findViewById(R.id.spinner_trip_type)
+        val tipiViaggio = listOf("ALL", "LOCAL", "EXCURSION", "JOURNEY", "NO_PROGRAM")
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, listOf("ALL", "LOCAL", "EXCURSION", "JOURNEY", "NO_PROGRAM"))
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinnerTipo = view.findViewById(R.id.spinner_trip_type)
+        spinnerTipo.adapter = adapter
 
+
+        editDataStart = view.findViewById(R.id.edittext_start_date_filter)
+        editDataDestination = view.findViewById(R.id.edittext_destination_date_filter)
+        btn_filter = view.findViewById(R.id.btn_filter)
+        btn_filter.setOnClickListener(View.OnClickListener {
+            filtraViaggi()
+        })
         // Crea ViewModel con factory
         val repository = TripRepository(requireActivity().application)
         val factory = TripViewModel.TripViewModelFactory(repository)
@@ -48,4 +69,18 @@ class DescriptionFragment : Fragment() {
             tripAdapter.submitList(trips)
         }
     }
+
+    fun filtraViaggi() {
+        val tipo = spinnerTipo.selectedItem.toString()
+        val start_date = editDataStart.text.toString()
+        val destination_date = editDataDestination.text.toString()
+        tripViewModel.filtraViaggi(tipo, start_date, destination_date)
+            .observe(viewLifecycleOwner) { trips ->
+                tripAdapter.submitList(trips)
+
+            }
+    }
+        // Implementa la logica per filtrare i viaggi
+        // Ad esempio, puoi mostrare un dialogo o un menu a discesa per selezionare i filtri
+        // e poi aggiornare l'adapter con i risultati filtrati.
 }
