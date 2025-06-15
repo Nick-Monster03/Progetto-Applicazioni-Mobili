@@ -35,4 +35,8 @@ class PlaceRepository(app: Application) {
     fun existsPlace(place: Place): Boolean {
         return placeDao.getCountPlacesByCoordinates(latitudine = place.latitudine, longitudine = place.longitudine) > 0
     }
+
+    fun getPlaceByCordinates(latitudine: Double, longitudine: Double): Int {
+        return placeDao.getPlacesByCoordinates(latitudine, longitudine)
+    }
 }

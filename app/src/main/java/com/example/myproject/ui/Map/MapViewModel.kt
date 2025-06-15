@@ -7,11 +7,13 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.myproject.Database.Entities.Photo
 import com.example.myproject.Database.Entities.Place
 import com.example.myproject.Database.Entities.Trip
 import com.example.myproject.Database.Entities.TripPlace
 import com.example.myproject.Database.Entities.TripType
 import com.example.myproject.TripPlaceRepository
+import com.example.myproject.repository.PhotoRepository
 import com.example.myproject.repository.PlaceRepository
 import com.example.myproject.ui.TripsStorical.TripRepository
 import com.example.myproject.ui.TripsStorical.TripViewModel
@@ -26,6 +28,7 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     private val placeRepository = PlaceRepository(application)
     private val tripRepository = TripRepository(application)
     private val tripPlaceRepository = TripPlaceRepository(application)
+    private val photoRepository = PhotoRepository(application)
 
     private val _location = MutableLiveData<LatLng?>()
     val location: LiveData<LatLng?> = _location
@@ -68,6 +71,18 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     fun setTripRunning(isRunning: Boolean, tripId: Int) {
         _isTripRunning.value = isRunning
         this.tripId = tripId
+    }
+
+    fun addPhoto(id_place: Int, photoBlob: ByteArray, timestamp: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            var photo = Photo(id_place, photoBlob, timestamp)
+            photoRepository.insert(photo)
+        }
+
+    }
+
+    fun getPlaceIdByCordinates(lat: Double, lng: Double): Int {
+        return placeRepository.getPlaceByCordinates(latitudine = lat, longitudine = lng)
     }
 
     class MapViewModelFactory(private val application: Application) : ViewModelProvider.Factory {

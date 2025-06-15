@@ -18,7 +18,7 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 @Database(
-    entities = [Trip::class, Place::class, Photo::class, TripPlace::class], version = 2, exportSchema = false)
+    entities = [Trip::class, Place::class, Photo::class, TripPlace::class], version = 3, exportSchema = false)
 
 abstract class TravelDatabase : RoomDatabase() {
 
@@ -33,9 +33,30 @@ abstract class TravelDatabase : RoomDatabase() {
         private const val N_THREADS = 4
         val databaseWriteExecutor: ExecutorService = Executors.newFixedThreadPool(N_THREADS)
 
-        val MIGRATION_1_2 = object : Migration(1, 2) {
+        val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL("ALTER TABLE trip_table ADD COLUMN description TEXT")
+                // 1. Crea nuova tabella con timestamp TEXT
+                database.execSQL("""
+            CREATE TABLE photo_table_new (
+                id_place INTEGER NOT NULL,
+                photoBlob BLOB NOT NULL,
+                timestamp TEXT NOT NULL DEFAULT '',
+                PRIMARY KEY(id_place, photoBlob),
+                FOREIGN KEY(id_place) REFERENCES place_table(id) ON DELETE CASCADE
+            )
+        """.trimIndent())
+
+                // 2. Copia i dati dalla vecchia tabella
+                database.execSQL("""
+            INSERT INTO photo_table_new (id_place, photoBlob, timestamp)
+            SELECT id_place, photoBlob, CAST(timestamp AS TEXT) FROM photo_table
+        """.trimIndent())
+
+                // 3. Elimina la tabella vecchia
+                database.execSQL("DROP TABLE photo_table")
+
+                // 4. Rinomina la nuova tabella con il nome originale
+                database.execSQL("ALTER TABLE photo_table_new RENAME TO photo_table")
             }
         }
 
@@ -56,7 +77,7 @@ abstract class TravelDatabase : RoomDatabase() {
                     context.applicationContext,
                     TravelDatabase::class.java,
                     "travel_database"
-                ).addMigrations(MIGRATION_1_2).build()
+                ).addMigrations(MIGRATION_2_3).build()
                 INSTANCE = instance
                 instance
             }

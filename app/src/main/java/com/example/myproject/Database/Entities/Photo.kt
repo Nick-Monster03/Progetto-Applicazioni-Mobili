@@ -19,6 +19,6 @@ import androidx.room.ForeignKey
 class Photo(
     val id_place: Int,
     val photoBlob: ByteArray = ByteArray(0),
-    val timestamp: Long
+    val timestamp: String
 
 )
