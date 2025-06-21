@@ -26,4 +26,8 @@ class PhotoRepository(app: Application) {
     fun getPhotosByPlace(placeId: Int): LiveData<List<Photo>> {
         return photoDao.getPhotosByPlace(placeId)
     }
+
+    fun getPhotoAndPlaces(placeId: Int): LiveData<List<Photo>> {
+        return photoDao.getPhotosAndPlaces(placeId)
+    }
 }

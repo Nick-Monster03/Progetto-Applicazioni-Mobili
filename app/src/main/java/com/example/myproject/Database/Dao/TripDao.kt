@@ -5,6 +5,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.example.myproject.Database.Entities.Place
 import com.example.myproject.Database.Entities.Trip
 import com.example.myproject.Database.Entities.TripType
 
@@ -39,5 +40,8 @@ interface TripDao {
 
     @Query("SELECT * FROM trip_table WHERE (:type IS NULL OR type = :type) AND (:fromDate IS NULL OR date(startDate) >= date(:fromDate)) AND (:toDate IS NULL OR date(startDate) <= date(:toDate))")
     fun getFilteredTrips(type: TripType?, fromDate: String?, toDate: String?): LiveData<List<Trip>>
+
+    @Query("SELECT pt.* FROM trip_table as t JOIN tripplace as tp ON t.id = tp.tripId JOIN place_table as pt ON pt.id = tp.placeId WHERE t.id = :tripId")
+    fun getPlacesForTrip(tripId: Int): LiveData<List<Place>>
 
 }

@@ -13,7 +13,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.myProject.R
-import com.example.myproject.Database.TravelDatabase
 import com.example.myproject.ui.TripsStorical.TripAdapter
 import com.example.myproject.ui.TripsStorical.TripRepository
 import com.example.myproject.ui.TripsStorical.TripViewModel
@@ -32,7 +31,7 @@ class DescriptionFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        return inflater.inflate(R.layout.nav_add_description, container, false)
+        return inflater.inflate(R.layout.nav_storical, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {

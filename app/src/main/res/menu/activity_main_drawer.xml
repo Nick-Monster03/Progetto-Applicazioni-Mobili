@@ -21,7 +21,7 @@
             android:icon="@drawable/program_trip"
             android:title="Programma Viaggio" />
         <item
-            android:id="@+id/nav_add_description"
+            android:id="@+id/nav_storical"
             android:icon="@drawable/add_description"
             android:title="Viaggi Passati" />
     </group>

@@ -1,5 +1,6 @@
 package com.example.myproject.ui.ProgramTrip
 
+import android.app.AlertDialog
 import android.location.Geocoder
 import android.os.Bundle
 import android.util.Log
@@ -22,6 +23,9 @@ import com.example.myproject.Database.Entities.TripType
 import com.example.myproject.TripPlaceRepository
 import com.example.myproject.repository.PlaceRepository
 import com.example.myproject.ui.TripsStorical.TripRepository
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 
 class ProgramTripFragment : Fragment() {
@@ -119,13 +123,18 @@ class ProgramTripFragment : Fragment() {
 
 
         btn_send.setOnClickListener {
-            val tripType = spinner.selectedItem.toString()
-            val startDate = edit_start_date.text.toString()
-            val startPlace = edit_start_place.text.toString()
-            val endDate = edit_end_date.text.toString()
-            val endPlace = edit_end_place.text.toString()
-            val description = edit_description.text.toString()
+            var tripType = spinner.selectedItem.toString()
+            var startDate = edit_start_date.text.toString()
+            var startPlace = edit_start_place.text.toString().trim()
+            var endDate = edit_end_date.text.toString()
+            var endPlace = edit_end_place.text.toString().trim()
+            var description = edit_description.text.toString()
 
+
+            val valid = checkVariables(tripType, startDate, startPlace, endDate, endPlace, description) {
+                    msg -> showError(msg)
+            }
+            if (!valid) return@setOnClickListener
 
             var type: TripType
             if(tripType == "JOURNEY"){
@@ -135,15 +144,21 @@ class ProgramTripFragment : Fragment() {
             }else{
                 type = TripType.LOCAL
             }
+            if (type == TripType.LOCAL || type == TripType.EXCURSION)
+                endDate = startDate
 
+            if(type == TripType.LOCAL)
+                endPlace = startPlace
 
             val trip = Trip(
                 type = type,
                 startDate = startDate,
                 start = startPlace,
-                endDate = if (type == TripType.LOCAL || type == TripType.EXCURSION) startDate else endDate,
-                destination = if (type == TripType.LOCAL) startPlace else endPlace,
+                endDate = endDate,
+                destination = endPlace,
                 description = description)
+
+
 
             Thread {
                 val geocoder = Geocoder(requireActivity())
@@ -193,16 +208,99 @@ class ProgramTripFragment : Fragment() {
                     programTripViewModel.addTripPlace(TripPlace(id_trip.toInt(), id_place_destination))
                 }
             }.start()
-
-
-
-
-
         }
+    }
 
-
+    fun showError(message: String){
+        AlertDialog.Builder(context)
+            .setTitle("Errore")
+            .setMessage(message)
+            .setPositiveButton("OK", null)
+            .show()
 
     }
 
+    fun checkVariables(
+        tripTypeStr: String,
+        startDate: String,
+        startPlace: String,
+        endDate: String,
+        endPlace: String,
+        description: String,
+        showError: (String) -> Unit
+    ): Boolean {
+        val type = when (tripTypeStr.uppercase()) {
+            "JOURNEY" -> TripType.JOURNEY
+            "EXCURSION" -> TripType.EXCURSION
+            else -> TripType.LOCAL
+        }
+
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply {
+            isLenient = false
+        }
+
+        fun parseDateOrNull(dateStr: String): Date? =
+            try { dateFormat.parse(dateStr) } catch (e: Exception) { null }
+
+        if (startDate.isBlank()) {
+            showError("Inserisci una data di inizio")
+            return false
+        }
+
+        val startDateParsed = parseDateOrNull(startDate)
+        if (startDateParsed == null) {
+            showError("Formato data di inizio non valido (usa yyyy-MM-dd)")
+            return false
+        }
+
+        if (startPlace.isBlank()) {
+            showError("Inserisci un luogo di partenza")
+            return false
+        }
+
+        val today = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.time
+
+        if (startDateParsed.before(today)) {
+            showError("La data di inizio non può essere nel passato")
+            return false
+        }
+
+        if (type == TripType.EXCURSION || type == TripType.JOURNEY) {
+            if (endPlace.isBlank()) {
+                showError("Inserisci un luogo di arrivo")
+                return false
+            }
+        }
+
+        if (type == TripType.JOURNEY) {
+            if (endDate.isBlank()) {
+                showError("Inserisci una data di fine per il viaggio")
+                return false
+            }
+
+            val endDateParsed = parseDateOrNull(endDate)
+            if (endDateParsed == null) {
+                showError("Formato data di fine non valido (usa yyyy-MM-dd)")
+                return false
+            }
+
+            if (endDateParsed.before(startDateParsed)) {
+                showError("La data di fine non può essere precedente alla data di inizio")
+                return false
+            }
+
+            if (endDateParsed.before(today)) {
+                showError("La data di fine non può essere nel passato")
+                return false
+            }
+        }
+
+        return true
+    }
 
 }

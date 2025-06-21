@@ -5,6 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.myproject.Database.Entities.Place
 import com.example.myproject.Database.Entities.Trip
 import com.example.myproject.Database.Entities.TripType
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +21,10 @@ class TripViewModel(private val repository: TripRepository) : ViewModel() {
 
     fun getAllTrips(): LiveData<List<Trip>> {
         return repository.getAllTrips()
+    }
+
+    fun  getPlacesById(tripId: Int): LiveData<List<Place>> {
+        return repository.getPlacedById(tripId)
     }
 
     fun filtraViaggi(tipo:String, dataStart: String, dataDestination: String): LiveData<List<Trip>> {

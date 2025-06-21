@@ -11,9 +11,9 @@
         tools:layout="@layout/map_layout"
         android:name="com.example.myproject.ui.map.MapFragment"/>
     <fragment
-        android:id="@+id/nav_add_description"
+        android:id="@+id/nav_storical"
         android:name="com.example.myproject.DescriptionFragment"
-        tools:layout="@layout/nav_add_description" />
+        tools:layout="@layout/nav_storical" />
 
     <fragment
         android:id="@+id/nav_statistics"
@@ -29,4 +29,19 @@
         android:id="@+id/nav_program_trip"
         android:name="com.example.myproject.ui.ProgramTrip.ProgramTripFragment"
         tools:layout="@layout/nav_program_trip"/>
+
+    <fragment
+        android:id="@+id/tripMapFragment"
+        android:name="com.example.myproject.ui.TripsStorical.TripMapFragment"
+        android:label="TripMapFragment"
+        tools:layout="@layout/map_trip_layout" />
+
+    <action
+        android:id="@+id/action_descriptionFragment_to_tripMapFragment"
+        app:destination="@id/tripMapFragment" />
+
+    <action
+        android:id="@+id/action_tripMapFragment_to_descriptionFragment"
+        app:destination="@id/nav_storical" />
+
 </navigation>

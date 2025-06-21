@@ -1,9 +1,12 @@
 package com.example.myproject.ui.TripsStorical
 
+import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.EditText
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.navigation.Navigation
 import androidx.recyclerview.widget.RecyclerView.Adapter
 import com.example.myProject.R
 import com.example.myproject.Database.Entities.Trip
@@ -41,6 +44,20 @@ class TripAdapter (private val viewModel: TripViewModel) : Adapter<TripViewHolde
                     }
                     .show()
             }
+
+            holder.itemView.setOnClickListener {
+                val context = holder.itemView.context
+                val bundle = Bundle().apply {
+                    putInt("trip_id", trip.id)
+                }
+
+                val fragment = TripMapFragment()
+                fragment.arguments = bundle
+
+                val navController = Navigation.findNavController(holder.itemView)
+                navController.navigate(R.id.action_descriptionFragment_to_tripMapFragment, bundle)
+            }
+
         }
 
     }

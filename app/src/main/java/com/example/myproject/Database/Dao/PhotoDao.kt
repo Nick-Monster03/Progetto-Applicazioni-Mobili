@@ -14,6 +14,12 @@ interface PhotoDao {
     @Query("SELECT * FROM photo_table WHERE id_place = :placeId ")
     fun getPhotosByPlace(placeId: Int): LiveData<List<Photo>>
 
+    @Query("SELECT * FROM photo_table")
+    fun getPhotosByPlace(): LiveData<List<Photo>>
+
+    @Query("SELECT * FROM photo_table as p1 JOIN place_table as p2 on p1.id_place = p2.id WHERE id_place = :placeId ")
+    fun getPhotosAndPlaces(placeId: Int): LiveData<List<Photo>>
+
     @Query("DELETE FROM photo_table")
     fun deleteDone()
 }

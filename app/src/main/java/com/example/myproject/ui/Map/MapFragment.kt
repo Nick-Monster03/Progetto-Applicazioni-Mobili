@@ -1,11 +1,12 @@
 package com.example.myproject.ui.map
-
 import android.Manifest
 import android.app.Activity
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.location.Geocoder
 import android.os.Bundle
 import android.os.Looper
@@ -24,6 +25,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.example.myProject.R
 import com.example.myproject.Database.Entities.Place
+import com.example.myproject.GeofenceReceiver
 import com.google.android.gms.location.*
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -31,7 +33,10 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.Polyline
+import com.google.android.gms.maps.model.PolylineOptions
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
@@ -44,11 +49,13 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     private lateinit var locationCallback: LocationCallback
     private lateinit var viewModel: MapViewModel
 
-
     private lateinit var btnStartAndStop: Button
     private lateinit var textView: TextView
     private lateinit var btn_photo: ImageButton
     private val GALLERY_REQUEST_CODE = 100
+    private var geofenceAdded = false
+    private var polyline: Polyline? = null
+    private val polylinePoints = mutableListOf<LatLng>()
 
 
     override fun onCreateView(
@@ -60,6 +67,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         viewModel = ViewModelProvider(this, factory)[MapViewModel::class.java]
         btnStartAndStop = view.findViewById(R.id.StartAndStopButton)
         btn_photo = view.findViewById(R.id.button_add_photo)
+        btn_photo.visibility = View.GONE
         textView = view.findViewById(R.id.textView)
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
@@ -68,7 +76,18 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             override fun onLocationResult(result: LocationResult) {
                 for (location in result.locations) {
                     val latLng = LatLng(location.latitude, location.longitude)
+                    viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                        val latitude = Math.round(location.latitude * 100.0) / 100.0
+                        val longitude = Math.round(location.longitude * 100.0) / 100.0
+                        viewModel.saveTripPoint(latitude, longitude)
+                    }
+                    polylinePoints.add(latLng)
+                    polyline?.points = polylinePoints
                     viewModel.updateLocation(latLng)
+                    if (!geofenceAdded) {
+                        addGeofence()
+                        geofenceAdded = true
+                    }
                 }
             }
         }
@@ -97,13 +116,13 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                 ), 1001
             )
         }
-        //DEBUG
-        //btn_photo.setOnClickListener({Toast.makeText(requireContext(), "Aggiungi nuova foto dalla galleria", Toast.LENGTH_SHORT).show()})
+
         btn_photo.setOnClickListener {
             val intent = Intent(Intent.ACTION_PICK)
             intent.type = "image/*"
             startActivityForResult(intent, GALLERY_REQUEST_CODE)
         }
+
         btnStartAndStop.setOnClickListener {
             getCurrentPlace { place ->
                 if (place != null) {
@@ -117,16 +136,33 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                 }
             }
         }
+        /*DEBUG VISUALIZZA IL BOTTONE PER AGGIUNGERE PUNTI ALLA POLYLINE
+        val btn_debug = view.findViewById<Button>(R.id.debug_button) // devi aggiungere il bottone nel layout!
+        btn_debug.setOnClickListener {
+            viewLifecycleOwner.lifecycleScope.launch {
+                val testPoints = listOf(
+                    LatLng(44.4949, 11.3426), // Bologna
+                    LatLng(44.4955, 11.3430),
+                    LatLng(44.4960, 11.3435),
+                    LatLng(44.4965, 11.3440)
+                )
+                testPoints.forEach {
+                    polylinePoints.add(it)
+                    polyline?.points = polylinePoints
+                    delay(1000) // aspetta 1 secondo tra i punti
+                }
+            }
+        }*/
 
         viewModel.isTripRunning.observe(viewLifecycleOwner, Observer { isRunning ->
             if (isRunning) {
+                btn_photo.visibility = View.VISIBLE
                 btnStartAndStop.text = "Stop"
                 textView.text = "Interrompi Viaggio"
-                //btn_photo.visibility = View.VISIBLE
             } else {
-                btnStartAndStop.text = "Start"
+                btn_photo.visibility = View.GONE
+                btnStartAndStop.text = "Avvia"
                 textView.text = "Avvia il tuo Viaggio"
-                //btn_photo.visibility = View.GONE
             }
         })
 
@@ -144,6 +180,12 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             googleMap.mapType = GoogleMap.MAP_TYPE_HYBRID
             googleMap.moveCamera(CameraUpdateFactory.newCameraPosition(position))
         }
+        polyline = googleMap.addPolyline(
+            PolylineOptions()
+                .color(Color.BLUE)
+                .width(8f)
+                .addAll(polylinePoints) // vuoto all’inizio
+        )
     }
 
     override fun onStart() {
@@ -155,8 +197,50 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                 requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000).build()
+            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10000).setMinUpdateDistanceMeters(2000f).build()
             fusedLocationClient.requestLocationUpdates(request, locationCallback, Looper.getMainLooper())
+            addGeofence()
+        }
+    }
+
+    private fun addGeofence() {
+        val geofencingClient = LocationServices.getGeofencingClient(requireContext())
+
+        val geofence = Geofence.Builder()
+            .setRequestId("travel_2km")
+            .setCircularRegion(
+                viewModel.location.value?.latitude ?: return,
+                viewModel.location.value?.longitude ?: return,
+                1000f
+            )
+            .setExpirationDuration(Geofence.NEVER_EXPIRE)
+            .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT)
+            .build()
+
+        val geofenceRequest = GeofencingRequest.Builder()
+            .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
+            .addGeofence(geofence)
+            .build()
+
+        val intent = Intent(requireContext(), GeofenceReceiver::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(
+            requireContext(),
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        if (ActivityCompat.checkSelfPermission(
+                requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            geofencingClient.addGeofences(geofenceRequest, pendingIntent)
+                .addOnSuccessListener {
+                    Toast.makeText(requireContext(), "chiamo addGeofence con lat=${viewModel.location.value?.latitude}", Toast.LENGTH_SHORT).show()
+                }
+                .addOnFailureListener {
+                    Toast.makeText(requireContext(), "Errore geofence", Toast.LENGTH_SHORT).show()
+                }
         }
     }
 
@@ -197,8 +281,8 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                 val cityName = getCityFromCoordinates(requireContext(), location.latitude, location.longitude) ?: ""
                 val currentPlace = Place(
                     id = 0,
-                    latitudine = Math.round(location.latitude * 10.0) / 10.0,
-                    longitudine = Math.round(location.longitude * 10.0) / 10.0,
+                    latitudine = Math.round(location.latitude * 100.0) / 100.0,
+                    longitudine = Math.round(location.longitude * 100.0) / 100.0,
                     name = cityName
                 )
                 callback(currentPlace)
@@ -220,7 +304,6 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             null
         }
     }
-
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
@@ -249,8 +332,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                                 }
                             }
                         } else {
-                            Toast.makeText(requireContext(), "Avvia un viaggio per aggiungere foto", Toast.LENGTH_SHORT).show(
-                            )
+                            Toast.makeText(requireContext(), "Avvia un viaggio per aggiungere foto", Toast.LENGTH_SHORT).show()
                         }
                     } else {
                         Toast.makeText(requireContext(), "Posizione non disponibile", Toast.LENGTH_SHORT).show()
@@ -259,6 +341,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             }
         }
     }
+}
     /*DEBUG VISUALIZZA LA IMAGE VIEW IN ALTO (decommentare la Image view anche nel layout)
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
@@ -283,4 +366,4 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
 
 
-}
+

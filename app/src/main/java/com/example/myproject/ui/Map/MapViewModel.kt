@@ -1,11 +1,16 @@
 package com.example.myproject.ui.map
 
 import android.app.Application
+import android.content.Context
+import android.location.Geocoder
+import android.util.Log
+import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
 import com.example.myproject.Database.Entities.Photo
 import com.example.myproject.Database.Entities.Place
@@ -20,6 +25,7 @@ import com.example.myproject.ui.TripsStorical.TripViewModel
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -50,7 +56,8 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
             placeRepository.insert(place)
             val placeId = placeRepository.getPlaceId(place)
             tripId = tripRepository.insertTrip(trip).toInt()
-            //tripId = tripRepository.getLastTrip()
+            tripId = tripRepository.getLastTrip()
+           // Log.d("MapViewModel", "Trip started with ID: $tripId and $placeId" )
             tripPlaceRepository.insertTripPlace(TripPlace(tripId = tripId, placeId = placeId))
             _isTripRunning.postValue(true)
         }
@@ -85,6 +92,41 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         return placeRepository.getPlaceByCordinates(latitudine = lat, longitudine = lng)
     }
 
+    suspend fun saveTripPoint(latitude: Double, longitude: Double) {
+        if (isTripRunning.value == true) {
+            val place = Place(
+                id = 0,
+                latitudine = latitude,
+                longitudine = longitude,
+                name = getCityFromCoordinates(application, latitude, longitude) ?: "Unknown Place"
+            )
+            val id = placeRepository.insert(place)
+            val placeID = placeRepository.getPlaceByCordinates(place.latitudine, place.longitudine)
+            /*DEBUG*/
+            viewModelScope.launch(Dispatchers.Main) {
+                Log.e("TRIP PLACE", "Saving trip point: ${place.name}${placeID} and TRIPID = $tripId")
+            }
+            tripPlaceRepository.insertTripPlace(
+                TripPlace(
+                    tripId = tripId,
+                    placeId = placeID
+                )
+            )
+        }
+    }
+
+    private fun getCityFromCoordinates(context: Context, lat: Double, lon: Double): String? {
+        val geocoder = Geocoder(context, Locale.getDefault())
+        return try {
+            val addresses = geocoder.getFromLocation(lat, lon, 1)
+            if (!addresses.isNullOrEmpty()) {
+                addresses[0].locality ?: addresses[0].subAdminArea ?: addresses[0].adminArea
+            } else null
+        } catch (e: IOException) {
+            e.printStackTrace()
+            null
+        }
+    }
     class MapViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(MapViewModel::class.java)) {
