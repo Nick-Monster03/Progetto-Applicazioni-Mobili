@@ -170,8 +170,8 @@ class ProgramTripFragment : Fragment() {
                     val rawLatD = resultd[0].latitude
                     val rawLonD = resultd[0].longitude
 
-                    val precision = if (type == TripType.LOCAL) 4 else if (type == TripType.EXCURSION) 2 else 1
-
+                    //val precision = if (type == TripType.LOCAL) 4 else if (type == TripType.EXCURSION) 2 else 1
+                    val precision = 4
                     val latS = String.format(Locale.US,"%.${precision}f", rawLatS).toDouble()
                     val lonS = String.format(Locale.US,"%.${precision}f", rawLonS).toDouble()
                     val latD = String.format(Locale.US,"%.${precision}f", rawLatD).toDouble()

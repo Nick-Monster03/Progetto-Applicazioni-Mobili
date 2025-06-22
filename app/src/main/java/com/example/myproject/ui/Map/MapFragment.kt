@@ -52,6 +52,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     private lateinit var btnStartAndStop: Button
     private lateinit var textView: TextView
     private lateinit var btn_photo: ImageButton
+    private lateinit var btn_add_note: ImageButton
     private val GALLERY_REQUEST_CODE = 100
     private var geofenceAdded = false
     private var polyline: Polyline? = null
@@ -67,6 +68,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         viewModel = ViewModelProvider(this, factory)[MapViewModel::class.java]
         btnStartAndStop = view.findViewById(R.id.StartAndStopButton)
         btn_photo = view.findViewById(R.id.button_add_photo)
+        btn_add_note = view.findViewById(R.id.button_add_note)
         btn_photo.visibility = View.GONE
         textView = view.findViewById(R.id.textView)
 
@@ -77,8 +79,8 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                 for (location in result.locations) {
                     val latLng = LatLng(location.latitude, location.longitude)
                     viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                        val latitude = Math.round(location.latitude * 100.0) / 100.0
-                        val longitude = Math.round(location.longitude * 100.0) / 100.0
+                        val latitude = Math.round(location.latitude * 10000.0) / 10000.0
+                        val longitude = Math.round(location.longitude * 10000.0) / 10000.0
                         viewModel.saveTripPoint(latitude, longitude)
                     }
                     polylinePoints.add(latLng)
@@ -121,6 +123,10 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             val intent = Intent(Intent.ACTION_PICK)
             intent.type = "image/*"
             startActivityForResult(intent, GALLERY_REQUEST_CODE)
+        }
+
+        btn_add_note.setOnClickListener{
+            viewModel.showNoteDialog(requireContext())
         }
 
         btnStartAndStop.setOnClickListener {
@@ -197,7 +203,8 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                 requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10000).setMinUpdateDistanceMeters(2000f).build()
+            //Aggiorna se ci sono spostamenti di 50 m in 10 secondi
+            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10000).setMinUpdateDistanceMeters(50f).build()
             fusedLocationClient.requestLocationUpdates(request, locationCallback, Looper.getMainLooper())
             addGeofence()
         }
@@ -207,11 +214,11 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         val geofencingClient = LocationServices.getGeofencingClient(requireContext())
 
         val geofence = Geofence.Builder()
-            .setRequestId("travel_2km")
+            .setRequestId("travel_50m")
             .setCircularRegion(
                 viewModel.location.value?.latitude ?: return,
                 viewModel.location.value?.longitude ?: return,
-                1000f
+                50f
             )
             .setExpirationDuration(Geofence.NEVER_EXPIRE)
             .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT)
@@ -281,8 +288,8 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                 val cityName = getCityFromCoordinates(requireContext(), location.latitude, location.longitude) ?: ""
                 val currentPlace = Place(
                     id = 0,
-                    latitudine = Math.round(location.latitude * 100.0) / 100.0,
-                    longitudine = Math.round(location.longitude * 100.0) / 100.0,
+                    latitudine = Math.round(location.latitude * 10000.0) / 10000.0,
+                    longitudine = Math.round(location.longitude * 10000.0) / 10000.0,
                     name = cityName
                 )
                 callback(currentPlace)

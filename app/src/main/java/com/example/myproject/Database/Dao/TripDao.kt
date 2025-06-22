@@ -44,4 +44,6 @@ interface TripDao {
     @Query("SELECT pt.* FROM trip_table as t JOIN tripplace as tp ON t.id = tp.tripId JOIN place_table as pt ON pt.id = tp.placeId WHERE t.id = :tripId")
     fun getPlacesForTrip(tripId: Int): LiveData<List<Place>>
 
+    @Query("SELECT * FROM trip_table WHERE date(endDate) < date('now') ORDER BY date(endDate) DESC LIMIT 1")
+    fun getMostRecentEndedTrip(): Trip?
 }

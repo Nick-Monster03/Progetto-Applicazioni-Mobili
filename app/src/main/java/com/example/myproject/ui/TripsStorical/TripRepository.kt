@@ -58,4 +58,8 @@ class TripRepository(app: Application) {
         return tripDao.getPlacesForTrip(tripId)
     }
 
+    fun getMostRecentEndedTrip(): Trip? {
+        return tripDao.getMostRecentEndedTrip()
+    }
+
 }

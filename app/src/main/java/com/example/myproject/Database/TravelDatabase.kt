@@ -10,8 +10,8 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 @Database(
-    entities = [Trip::class, Place::class, Photo::class, TripPlace::class],
-    version = 3,
+    entities = [Trip::class, Place::class, Photo::class, TripPlace::class, Note::class],
+    version = 5,
     exportSchema = false
 )
 abstract class TravelDatabase : RoomDatabase() {
@@ -20,6 +20,7 @@ abstract class TravelDatabase : RoomDatabase() {
     abstract fun placeDao(): PlaceDao
     abstract fun photoDao(): PhotoDao
     abstract fun tripPlaceDao(): TripPlaceDao
+    abstract fun noteDao(): NoteDao
 
     companion object {
         @Volatile
@@ -56,6 +57,14 @@ abstract class TravelDatabase : RoomDatabase() {
                 database.execSQL("ALTER TABLE photo_table_new RENAME TO photo_table")
             }
         }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Aggiunge la colonna id_place con valore di default
+                database.execSQL("ALTER TABLE note_table ADD COLUMN id_place INTEGER NOT NULL DEFAULT -1")
+            }
+        }
+
 
         private val sRoomDatabaseCallback = object : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {

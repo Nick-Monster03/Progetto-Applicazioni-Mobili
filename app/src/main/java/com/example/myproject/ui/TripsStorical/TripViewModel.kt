@@ -1,5 +1,9 @@
 package com.example.myproject.ui.TripsStorical
 
+import android.app.AlertDialog
+import android.content.Context
+import android.widget.EditText
+import android.widget.Toast
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -8,6 +12,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.myproject.Database.Entities.Place
 import com.example.myproject.Database.Entities.Trip
 import com.example.myproject.Database.Entities.TripType
+import com.example.myproject.NoteRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -44,6 +49,8 @@ class TripViewModel(private val repository: TripRepository) : ViewModel() {
             if (dataDestination.isEmpty()) null else dataDestination
         )
     }
+
+
 
     class TripViewModelFactory(private val repository: TripRepository) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
