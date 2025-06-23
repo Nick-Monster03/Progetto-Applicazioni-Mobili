@@ -14,6 +14,9 @@ interface PhotoDao {
     @Query("SELECT * FROM photo_table WHERE id_place = :placeId ")
     fun getPhotosByPlace(placeId: Int): LiveData<List<Photo>>
 
+    @Query("SELECT * FROM photo_table WHERE id_trip = :tripId")
+    fun getPhotosByTrip(tripId: Int): LiveData<List<Photo>>
+
     @Query("SELECT * FROM photo_table")
     fun getPhotosByPlace(): LiveData<List<Photo>>
 
@@ -22,4 +25,5 @@ interface PhotoDao {
 
     @Query("DELETE FROM photo_table")
     fun deleteDone()
+
 }

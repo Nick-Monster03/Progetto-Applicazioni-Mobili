@@ -9,11 +9,13 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.myProject.R
+import com.example.myproject.ui.TripsStorical.TripRepository
+import com.example.myproject.ui.TripsStorical.TripViewModel
 
 class AddPhotoFragment : Fragment() {
 
     private lateinit var photoViewModel: PhotoViewModel
-    private lateinit var placeViewModel: PlaceViewModel
+    private lateinit var tripViewModel: TripViewModel
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -26,19 +28,20 @@ class AddPhotoFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val placeViewModel = ViewModelProvider(this)[PlaceViewModel::class.java]
-        val photoViewModel = ViewModelProvider(this)[PhotoViewModel::class.java]
+        val tripRepository = TripRepository(requireActivity().application)
+        val factory = TripViewModel.TripViewModelFactory(tripRepository)
+        tripViewModel = ViewModelProvider(this, factory)[TripViewModel::class.java]
+
+        photoViewModel = ViewModelProvider(this)[PhotoViewModel::class.java]
 
         val outerRecycler = view.findViewById<RecyclerView>(R.id.outer_recycler)
         outerRecycler.layoutManager = LinearLayoutManager(requireContext())
 
-        placeViewModel.getAllPlaces().observe(viewLifecycleOwner) { places ->
-            val adapter = GroupedPhotoAdapter(
-                places,
-                photoViewModel,
-                viewLifecycleOwner
-            )
-            outerRecycler.adapter = adapter
+        val adapter = GroupedPhotoAdapter(emptyList(), photoViewModel, viewLifecycleOwner)
+        outerRecycler.adapter = adapter
+
+        tripViewModel.getAllTrips().observe(viewLifecycleOwner) { trips ->
+            adapter.updateTrips(trips)
         }
     }
 

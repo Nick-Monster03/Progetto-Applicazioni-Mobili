@@ -10,9 +10,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.myProject.R
 import com.example.myproject.Database.Entities.Photo
 import com.example.myproject.Database.Entities.Place
+import com.example.myproject.Database.Entities.Trip
 
 class GroupedPhotoAdapter(
-    private val places: List<Place>,
+    private var trips: List<Trip>,
     private val photoViewModel: PhotoViewModel,
     private val lifecycleOwner: LifecycleOwner,
 ) : RecyclerView.Adapter<GroupedViewHolder>() {
@@ -25,17 +26,22 @@ class GroupedPhotoAdapter(
     }
 
     override fun onBindViewHolder(holder: GroupedViewHolder, position: Int) {
-        val place = places[position]
-        holder.title.text = place.name
+        val trip = trips[position]
+        holder.title.text = trip.start + " - " + trip.destination
 
         val photoAdapter = PhotoAdapter()
         holder.recycler.layoutManager = LinearLayoutManager(holder.recycler.context, LinearLayoutManager.HORIZONTAL, false)
         holder.recycler.adapter = photoAdapter
 
-        photoViewModel.getPhotosForPlace(place.id).observe(lifecycleOwner) {
+        photoViewModel.getPhotosByTrip(trip.id).observe(lifecycleOwner) {
             photoAdapter.submitList(it)
         }
     }
 
-    override fun getItemCount() = places.size
+    override fun getItemCount() = trips.size
+
+    fun updateTrips(newTrips: List<Trip>) {
+        trips = newTrips
+        notifyDataSetChanged()
+    }
 }

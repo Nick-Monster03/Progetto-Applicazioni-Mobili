@@ -9,13 +9,13 @@
             android:title="Mappa"
             android:icon="@drawable/ic_launcher_background" />
         <item
-            android:id="@+id/nav_statistics"
-            android:icon="@drawable/statistics"
-            android:title="Visualizza Statistiche" />
-        <item
             android:id="@+id/nav_add_photo"
             android:icon="@drawable/add_photo"
-            android:title="Aggiungi Foto" />
+            android:title="Galleria Viaggi" />
+        <item
+            android:id="@+id/nav_notes"
+            android:icon="@drawable/statistics"
+            android:title="Note Dei Viaggi" />
         <item
             android:id="@+id/nav_program_trip"
             android:icon="@drawable/program_trip"
@@ -23,6 +23,10 @@
         <item
             android:id="@+id/nav_storical"
             android:icon="@drawable/add_description"
-            android:title="Viaggi Passati" />
+            android:title="Storico dei Viaggi" />
+        <item
+            android:id="@+id/nav_statistics"
+            android:icon="@drawable/statistics"
+            android:title="Visualizza Statistiche" />
     </group>
 </menu>

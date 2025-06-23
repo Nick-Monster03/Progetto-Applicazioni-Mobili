@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.location.Geocoder
@@ -39,6 +40,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
@@ -70,6 +73,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         btn_photo = view.findViewById(R.id.button_add_photo)
         btn_add_note = view.findViewById(R.id.button_add_note)
         btn_photo.visibility = View.GONE
+        btn_add_note.visibility = View.GONE
         textView = view.findViewById(R.id.textView)
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
@@ -78,13 +82,15 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             override fun onLocationResult(result: LocationResult) {
                 for (location in result.locations) {
                     val latLng = LatLng(location.latitude, location.longitude)
-                    viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                        val latitude = Math.round(location.latitude * 10000.0) / 10000.0
-                        val longitude = Math.round(location.longitude * 10000.0) / 10000.0
-                        viewModel.saveTripPoint(latitude, longitude)
+                    if (viewModel.isTripRunning.value == true) {
+                        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                            val latitude = Math.round(location.latitude * 10000.0) / 10000.0
+                            val longitude = Math.round(location.longitude * 10000.0) / 10000.0
+                            viewModel.saveTripPoint(latitude, longitude)
+                        }
+                        polylinePoints.add(latLng)
+                        polyline?.points = polylinePoints
                     }
-                    polylinePoints.add(latLng)
-                    polyline?.points = polylinePoints
                     viewModel.updateLocation(latLng)
                     if (!geofenceAdded) {
                         addGeofence()
@@ -163,10 +169,12 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         viewModel.isTripRunning.observe(viewLifecycleOwner, Observer { isRunning ->
             if (isRunning) {
                 btn_photo.visibility = View.VISIBLE
+                btn_add_note.visibility = View.VISIBLE
                 btnStartAndStop.text = "Stop"
                 textView.text = "Interrompi Viaggio"
             } else {
                 btn_photo.visibility = View.GONE
+                btn_add_note.visibility = View.GONE
                 btnStartAndStop.text = "Avvia"
                 textView.text = "Avvia il tuo Viaggio"
             }
@@ -183,13 +191,13 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                 .bearing(90f)
                 .tilt(30f)
                 .build()
-            googleMap.mapType = GoogleMap.MAP_TYPE_HYBRID
+            googleMap.mapType = GoogleMap.MAP_TYPE_NORMAL
             googleMap.moveCamera(CameraUpdateFactory.newCameraPosition(position))
         }
         polyline = googleMap.addPolyline(
             PolylineOptions()
                 .color(Color.BLUE)
-                .width(8f)
+                .width(12f)
                 .addAll(polylinePoints) // vuoto all’inizio
         )
     }
@@ -318,24 +326,38 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             val imageUri = data?.data
             if (imageUri != null) {
                 val inputStream = requireContext().contentResolver.openInputStream(imageUri)
-                var blob_image = inputStream?.readBytes()
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+
                 getCurrentPlace { place ->
                     if (place != null) {
                         if (viewModel.isTripRunning.value == true) {
                             viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
                                 val id_place = viewModel.getPlaceIdByCordinates(place.latitudine, place.longitudine)
+                                val id_trip = viewModel.tripId.value ?: return@launch
+
+                                if(viewModel.existTripPlace(id_trip, id_place) == false) {
+                                    Toast.makeText(requireContext(), "Il luogo non appartiene al viaggio corrente", Toast.LENGTH_SHORT).show()
+                                    return@launch
+                                }
+
+                                // Salva il file immagine
+                                val filename = "photo_${System.currentTimeMillis()}.jpg"
+                                val photosDir = File(requireContext().filesDir, "photos")
+                                if (!photosDir.exists()) photosDir.mkdirs()
+
+                                val photoFile = File(photosDir, filename)
+                                FileOutputStream(photoFile).use {
+                                    bitmap.compress(Bitmap.CompressFormat.JPEG, 85, it)
+                                }
 
                                 withContext(Dispatchers.Main) {
-                                    if (id_place > 0 && blob_image != null && blob_image.isNotEmpty()) {
-                                        viewModel.addPhoto(
-                                            id_place,
-                                            blob_image,
-                                            SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
-                                        )
-                                        Toast.makeText(requireContext(), "Foto aggiunta con successo", Toast.LENGTH_SHORT).show()
-                                    } else {
-                                        Toast.makeText(requireContext(), "Errore nell'aggiunta della foto", Toast.LENGTH_SHORT).show()
-                                    }
+                                    viewModel.addPhoto(
+                                        id_place = id_place,
+                                        id_trip = id_trip,
+                                        photo_path = photoFile.absolutePath,
+                                        timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
+                                    )
+                                    Toast.makeText(requireContext(), "Foto aggiunta con successo", Toast.LENGTH_SHORT).show()
                                 }
                             }
                         } else {
@@ -348,6 +370,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             }
         }
     }
+
 }
     /*DEBUG VISUALIZZA LA IMAGE VIEW IN ALTO (decommentare la Image view anche nel layout)
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {

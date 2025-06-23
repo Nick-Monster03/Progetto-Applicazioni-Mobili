@@ -9,6 +9,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.myProject.R
 import com.example.myproject.Database.Entities.Photo
+import java.io.File
 
 class PhotoAdapter : RecyclerView.Adapter<PhotoViewHolder>() {
 
@@ -22,10 +23,19 @@ class PhotoAdapter : RecyclerView.Adapter<PhotoViewHolder>() {
 
     override fun onBindViewHolder(holder: PhotoViewHolder, position: Int) {
         val photo = photos[position]
-        //Essendo memorizzate come Blob le immagini vanno deserializzate poi mandate
-        //a schermo
-        val bitmap = BitmapFactory.decodeByteArray(photo.photoBlob, 0, photo.photoBlob.size)
-        holder.image.setImageBitmap(bitmap)
+        val file = File(photo.image_path)
+
+        if (file.exists()) {
+            val bitmap = BitmapFactory.decodeFile(photo.image_path)
+            if (bitmap != null) {
+                holder.image.setImageBitmap(bitmap)
+            } else {
+                holder.image.setImageResource(R.drawable.place_holder)
+            }
+        } else {
+            holder.image.setImageResource(R.drawable.place_holder)
+        }
+
         holder.timestamp.text = photo.timestamp
     }
 

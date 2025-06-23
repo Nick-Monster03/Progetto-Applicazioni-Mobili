@@ -39,4 +39,11 @@ class PlaceRepository(app: Application) {
     fun getPlaceByCordinates(latitudine: Double, longitudine: Double): Int {
         return placeDao.getPlacesByCoordinates(latitudine, longitudine)
     }
+
+    fun getPlacedByIdTrip(tripId: Int): LiveData<List<Place>> {
+        return placeDao.getPlacedByIdTrip(tripId)
+    }
+    fun existsPlaceById(id: Int): Boolean {
+        return placeDao.getPlaceCount(id) > 0
+    }
 }

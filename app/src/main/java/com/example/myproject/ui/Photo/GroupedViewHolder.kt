@@ -6,6 +6,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.myProject.R
 
 class GroupedViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-    val title = view.findViewById<TextView>(R.id.place_title)
+    val title = view.findViewById<TextView>(R.id.trip_title)
     val recycler = view.findViewById<RecyclerView>(R.id.photo_list)
 }

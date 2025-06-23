@@ -1,4 +1,4 @@
-package com.example.myproject.ui.TripsStorical
+package com.example.myproject.ui.TripsStorical.MapTrip
 
 import android.graphics.Color
 import android.os.Bundle
@@ -6,24 +6,20 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.PolylineOptions
-import kotlinx.coroutines.Dispatchers
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.lifecycleScope
-import androidx.navigation.Navigation
 import androidx.navigation.fragment.findNavController
 import com.example.myProject.R
+import com.example.myproject.ui.TripsStorical.TripRepository
+import com.example.myproject.ui.TripsStorical.TripViewModel
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Polyline
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class TripMapFragment : Fragment(), OnMapReadyCallback {
 
@@ -42,7 +38,8 @@ class TripMapFragment : Fragment(), OnMapReadyCallback {
 
         requireActivity().findViewById<Toolbar>(R.id.toolbar)?.visibility = View.GONE
 
-        val factory = TripViewModel.TripViewModelFactory(TripRepository(requireActivity().application))
+        val factory =
+            TripViewModel.TripViewModelFactory(TripRepository(requireActivity().application))
         tripViewModel = ViewModelProvider(this, factory)[TripViewModel::class.java]
 
         val mapFragment = childFragmentManager.findFragmentById(R.id.map_trip_fragment) as? SupportMapFragment
@@ -59,7 +56,7 @@ class TripMapFragment : Fragment(), OnMapReadyCallback {
 
     override fun onMapReady(gMap: GoogleMap) {
         googleMap = gMap
-        googleMap.mapType = GoogleMap.MAP_TYPE_HYBRID
+        googleMap.mapType = GoogleMap.MAP_TYPE_NORMAL
 
         tripViewModel.getPlacesById(tripId).observe(viewLifecycleOwner) { places ->
             if (places.isNotEmpty()) {

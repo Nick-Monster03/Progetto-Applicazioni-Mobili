@@ -94,9 +94,9 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         _tripId.value = tripId
     }
 
-    fun addPhoto(id_place: Int, photoBlob: ByteArray, timestamp: String) {
+    fun addPhoto(id_place: Int, id_trip: Int,photo_path: String, timestamp: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            var photo = Photo(id_place, photoBlob, timestamp)
+            var photo = Photo(id_place, id_trip, photo_path, timestamp)
             photoRepository.insert(photo)
         }
 
@@ -162,6 +162,10 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
 
         // Mostra il dialog
         builder.create().show()
+    }
+
+    fun existTripPlace(tripId: Int, placeId: Int): Boolean {
+        return tripRepository.existsTripWithId(tripId) && placeRepository.existsPlaceById(placeId)
     }
 
     private fun getCityFromCoordinates(context: Context, lat: Double, lon: Double): String? {

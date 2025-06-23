@@ -46,4 +46,11 @@ interface TripDao {
 
     @Query("SELECT * FROM trip_table WHERE date(endDate) < date('now') ORDER BY date(endDate) DESC LIMIT 1")
     fun getMostRecentEndedTrip(): Trip?
+
+    @Query("SELECT * FROM trip_table WHERE date(endDate) < date('now')")
+    fun getAllEndedTrips(): LiveData<List<Trip>>
+
+    @Query("SELECT count(*) FROM trip_table WHERE id = :id")
+    fun getTripCountById(id: Int): Int
+
 }

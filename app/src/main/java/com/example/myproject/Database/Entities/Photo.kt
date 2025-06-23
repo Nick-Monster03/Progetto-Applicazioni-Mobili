@@ -5,7 +5,7 @@ import androidx.room.ForeignKey
 
 @Entity(
     tableName = "photo_table",
-    primaryKeys = ["id_place", "photoBlob"],
+    primaryKeys = ["id_place", "image_path"],
     foreignKeys = [
         ForeignKey(
             entity = Place::class,
@@ -18,7 +18,8 @@ import androidx.room.ForeignKey
 
 class Photo(
     val id_place: Int,
-    val photoBlob: ByteArray = ByteArray(0),
+    val id_trip: Int,
+    val image_path: String,
     val timestamp: String
 
 )

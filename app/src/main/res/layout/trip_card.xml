@@ -45,13 +45,17 @@
             android:text="Viaggio bellissimo con tappa a Firenze"
             android:textSize="13sp"
             android:layout_marginTop="8dp" />
-        <Button
-            android:id="@+id/button_edit_description"
+
+        <TextView
+            android:id="@+id/text_trip_distance"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:backgroundTint="@color/deep_orange"
-            android:text="Modifica Descrizione"
-            android:layout_marginTop="8dp"/>
+            android:text="Distanza: 85 km"
+            android:textSize="13sp"
+            android:textColor="@android:color/holo_blue_dark"
+            android:layout_marginTop="4dp" />
+
+
 
     </LinearLayout>
 

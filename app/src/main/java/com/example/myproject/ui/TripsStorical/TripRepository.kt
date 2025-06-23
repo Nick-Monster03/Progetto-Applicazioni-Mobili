@@ -62,4 +62,7 @@ class TripRepository(app: Application) {
         return tripDao.getMostRecentEndedTrip()
     }
 
+    fun existsTripWithId(tripId: Int): Boolean {
+        return tripDao.getTripCountById(tripId) > 0
+    }
 }

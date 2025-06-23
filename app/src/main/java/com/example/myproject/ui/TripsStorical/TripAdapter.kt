@@ -3,13 +3,13 @@ package com.example.myproject.ui.TripsStorical
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import android.widget.EditText
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.Navigation
 import androidx.recyclerview.widget.RecyclerView.Adapter
 import com.example.myProject.R
 import com.example.myproject.Database.Entities.Trip
+import com.example.myproject.ui.TripsStorical.MapTrip.TripMapFragment
 
 class TripAdapter (private val viewModel: TripViewModel) : Adapter<TripViewHolder>() {
 
@@ -26,24 +26,14 @@ class TripAdapter (private val viewModel: TripViewModel) : Adapter<TripViewHolde
             holder.textRoute.text = "${trip.start} -> ${trip.destination}"
             holder.textType.text = trip.type.toString()
             holder.textDescription.text = trip.description ?: ""
-            holder.editButton.setOnClickListener {
-                val context = holder.itemView.context
-                val input = EditText(context)
-                input.setText(trip.description ?: "")
-
-                AlertDialog.Builder(context)
-                    .setTitle("Modifica descrizione")
-                    .setView(input)
-                    .setPositiveButton("Salva") { dialog, _ ->
-                        val newDescription = input.text.toString()
-                        viewModel.updateDescription(trip.id, newDescription)
-                        dialog.dismiss()
-                    }
-                    .setNegativeButton("Annulla") { dialog, _ ->
-                        dialog.cancel()
-                    }
-                    .show()
+            var lifecycleScope = (holder.itemView.context as AppCompatActivity).lifecycleScope
+            val lifecycleOwner = holder.itemView.context as AppCompatActivity
+            viewModel.getDistanceById(trip.id).observe(lifecycleOwner) { distanzaKm ->
+                holder.textDistance.text = "Distanza: %.1f km".format(distanzaKm)
             }
+
+
+
 
             holder.itemView.setOnClickListener {
                 val context = holder.itemView.context

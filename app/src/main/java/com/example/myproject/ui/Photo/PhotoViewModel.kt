@@ -14,4 +14,8 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
     fun getPhotosForPlace(placeId: Int): LiveData<List<Photo>> {
         return repository.getPhotoAndPlaces(placeId)
     }
+
+    fun getPhotosByTrip(tripId: Int): LiveData<List<Photo>> {
+        return repository.getPhotoByTrip(tripId)
+    }
 }

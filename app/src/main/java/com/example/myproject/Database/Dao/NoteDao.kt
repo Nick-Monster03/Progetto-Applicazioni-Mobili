@@ -13,4 +13,8 @@ interface NoteDao {
 
     @Query("SELECT * FROM note_table WHERE id_trip = :tripId")
     fun getNotesByTripId(tripId: Int): List<Note>
+
+    @Query("SELECT * FROM note_table WHERE id_trip = :tripId")
+    fun getNotesByTripIdGroup(tripId: Int): List<Note>
+
 }
