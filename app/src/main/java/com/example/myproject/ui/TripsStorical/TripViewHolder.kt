@@ -12,5 +12,6 @@ class TripViewHolder(view: View) : RecyclerView.ViewHolder(view) {
     val textType = view.findViewById<TextView>(R.id.text_trip_type)
     val textDescription = view.findViewById<TextView>(R.id.text_trip_description)
     val textDistance = view.findViewById<TextView>(R.id.text_trip_distance)
+    val buttonNotes = view.findViewById<Button>(R.id.btn_show_notes)
 }
 

@@ -26,6 +26,7 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyDXCH1Ws5UomtmPL4PAeWdIFl9Ts25eO6A" />
 
+
         <activity
             android:name="com.example.myproject.MainActivity"
             android:exported="true">
@@ -33,7 +34,10 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
         </activity>
+        >
+
         <receiver android:name="com.example.myproject.GeofenceReceiver" android:exported="true"/>
     </application>
 

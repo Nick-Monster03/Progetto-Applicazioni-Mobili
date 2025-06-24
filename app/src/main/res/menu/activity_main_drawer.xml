@@ -12,10 +12,7 @@
             android:id="@+id/nav_add_photo"
             android:icon="@drawable/add_photo"
             android:title="Galleria Viaggi" />
-        <item
-            android:id="@+id/nav_notes"
-            android:icon="@drawable/statistics"
-            android:title="Note Dei Viaggi" />
+
         <item
             android:id="@+id/nav_program_trip"
             android:icon="@drawable/program_trip"

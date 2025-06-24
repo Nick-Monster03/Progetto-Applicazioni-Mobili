@@ -1,5 +1,6 @@
 package com.example.myproject.Database.Dao
 
+import androidx.lifecycle.LiveData
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
@@ -12,9 +13,9 @@ interface NoteDao {
     fun insert(note: Note)
 
     @Query("SELECT * FROM note_table WHERE id_trip = :tripId")
-    fun getNotesByTripId(tripId: Int): List<Note>
+    fun getNotesByTripId(tripId: Int): LiveData<List<Note>>
 
     @Query("SELECT * FROM note_table WHERE id_trip = :tripId")
-    fun getNotesByTripIdGroup(tripId: Int): List<Note>
+    fun getNotesByTripIdGroup(tripId: Int): LiveData<List<Note>>
 
 }

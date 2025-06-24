@@ -55,6 +55,15 @@
             android:textColor="@android:color/holo_blue_dark"
             android:layout_marginTop="4dp" />
 
+        <Button
+            android:id="@+id/btn_show_notes"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Note"
+            android:backgroundTint="@color/red_primary"
+            android:layout_gravity="end" />
+
+
 
 
     </LinearLayout>

@@ -5,8 +5,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.myproject.Database.Entities.Note
-import com.example.myproject.Database.Entities.Place
 import com.example.myproject.NoteRepository
 import com.example.myproject.repository.PlaceRepository
 

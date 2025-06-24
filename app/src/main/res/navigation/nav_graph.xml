@@ -20,10 +20,7 @@
         android:name="com.example.myproject.ui.Statistics.StatisticsFragment"
         tools:layout="@layout/nav_statistics" />
 
-    <fragment
-        android:id="@+id/nav_notes"
-        android:name="com.example.myproject.ui.Note.NoteFragment"
-        tools:layout="@layout/nav_notes" />
+
 
     <fragment
         android:id="@+id/nav_add_photo"
@@ -41,6 +38,10 @@
         android:label="TripMapFragment"
         tools:layout="@layout/map_trip_layout" />
 
+    <fragment android:id="@+id/nav_notes"
+        android:name="com.example.myproject.ui.TripsStorical.Note.NotesFragment.NotesFragment"
+        tools:layout="@layout/nav_notes" />
+
     <action
         android:id="@+id/action_descriptionFragment_to_tripMapFragment"
         app:destination="@id/tripMapFragment" />
@@ -48,5 +49,9 @@
     <action
         android:id="@+id/action_tripMapFragment_to_descriptionFragment"
         app:destination="@id/nav_storical" />
+    <action
+        android:id="@+id/action_descriptionFragment_to_nav_notes"
+        app:destination="@id/nav_notes" />
+
 
 </navigation>
