@@ -46,4 +46,8 @@ class PlaceRepository(app: Application) {
     fun existsPlaceById(id: Int): Boolean {
         return placeDao.getPlaceCount(id) > 0
     }
+
+    fun getPlaceSinceDate(date: String): LiveData<List<Place>> {
+        return placeDao.getTripsSince(date)
+    }
 }

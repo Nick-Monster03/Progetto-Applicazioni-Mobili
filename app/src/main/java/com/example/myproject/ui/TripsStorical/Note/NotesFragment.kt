@@ -68,5 +68,10 @@ class NotesFragment : Fragment() {
             requireActivity().onBackPressedDispatcher.onBackPressed()
         }
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        requireActivity().findViewById<Toolbar>(R.id.toolbar)?.visibility = View.VISIBLE
+    }
 }
 

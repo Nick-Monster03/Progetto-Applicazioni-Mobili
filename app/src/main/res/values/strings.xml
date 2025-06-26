@@ -7,4 +7,10 @@
         <item>EXCURSION</item>
         <item>JOURNEY</item>
     </string-array>
+    <string-array name="statistics_filters">
+        <item>Last 1 Month</item>
+        <item>Last 3 Months</item>
+        <item>Last 6 Months</item>
+        <item>All</item>
+    </string-array>
 </resources>

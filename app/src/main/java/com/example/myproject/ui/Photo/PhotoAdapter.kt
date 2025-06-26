@@ -42,7 +42,7 @@ class PhotoAdapter : RecyclerView.Adapter<PhotoViewHolder>() {
     override fun getItemCount() = photos.size
 
     fun submitList(list: List<Photo>) {
-        photos = list
+        photos = if(list.isNotEmpty()) list else emptyList()
         notifyDataSetChanged()
     }
 }

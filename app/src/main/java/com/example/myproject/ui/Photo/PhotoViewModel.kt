@@ -18,4 +18,10 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
     fun getPhotosByTrip(tripId: Int): LiveData<List<Photo>> {
         return repository.getPhotoByTrip(tripId)
     }
+
+    suspend fun getCountPhotosByTrip(tripId: Int): Int {
+        //return repository.getPhotoByTrip(tripId).value?.size ?: 0
+        return repository.getCountPhotosByTrip(tripId)
+    }
+
 }

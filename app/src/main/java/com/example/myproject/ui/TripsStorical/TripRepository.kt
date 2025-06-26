@@ -65,4 +65,16 @@ class TripRepository(app: Application) {
     fun existsTripWithId(tripId: Int): Boolean {
         return tripDao.getTripCountById(tripId) > 0
     }
+
+    fun getTripsSince(fromDate: String): LiveData<List<Trip>> {
+        return tripDao.getTripsSince(fromDate)
+    }
+
+    fun getAllEndedTrips(): LiveData<List<Trip>> {
+        return tripDao.getAllEndedTrips()
+    }
+
+    fun getTripCount(tripId: Int): Int {
+        return tripDao.getTripCountById(tripId)
+    }
 }

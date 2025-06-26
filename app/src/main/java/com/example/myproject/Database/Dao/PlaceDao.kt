@@ -34,4 +34,7 @@ interface PlaceDao {
     @Query("SELECT pt.* FROM place_table AS pt JOIN TripPlace as tp ON pt.id = tp.placeId WHERE id = :idTrip")
     fun getPlacedByIdTrip(idTrip: Int): LiveData<List<Place>>
 
+    @Query("SELECT p.* FROM place_table p JOIN tripplace tp ON p.id = tp.placeId JOIN trip_table t ON t.id = tp.tripId WHERE t.startDate >= :fromDate")
+    fun getTripsSince(fromDate: String): LiveData<List<Place>>
+
 }

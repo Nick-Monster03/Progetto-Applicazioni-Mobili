@@ -34,4 +34,8 @@ class PhotoRepository(app: Application) {
     fun getPhotoAndPlaces(placeId: Int): LiveData<List<Photo>> {
         return photoDao.getPhotosAndPlaces(placeId)
     }
+
+    suspend fun getCountPhotosByTrip(tripId: Int): Int {
+        return photoDao.getCountPhotosByTrip(tripId)
+    }
 }

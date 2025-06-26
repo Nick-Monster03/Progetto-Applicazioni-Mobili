@@ -21,7 +21,6 @@
         tools:layout="@layout/nav_statistics" />
 
 
-
     <fragment
         android:id="@+id/nav_add_photo"
         android:name="com.example.myproject.ui.Photo.AddPhotoFragment"

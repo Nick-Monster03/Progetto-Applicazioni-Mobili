@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.myProject.R
@@ -37,7 +38,7 @@ class AddPhotoFragment : Fragment() {
         val outerRecycler = view.findViewById<RecyclerView>(R.id.outer_recycler)
         outerRecycler.layoutManager = LinearLayoutManager(requireContext())
 
-        val adapter = GroupedPhotoAdapter(emptyList(), photoViewModel, viewLifecycleOwner)
+        val adapter = GroupedPhotoAdapter(emptyList(), photoViewModel, viewLifecycleOwner, viewLifecycleOwner.lifecycleScope)
         outerRecycler.adapter = adapter
 
         tripViewModel.getAllTrips().observe(viewLifecycleOwner) { trips ->

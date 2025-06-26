@@ -27,7 +27,7 @@ class TripViewModel(private val repository: TripRepository) : ViewModel() {
     }
 
     fun getAllTrips(): LiveData<List<Trip>> {
-        return repository.getAllTrips()
+        return repository.getAllEndedTrips()
     }
 
     fun  getPlacesById(tripId: Int): LiveData<List<Place>> {
@@ -69,7 +69,7 @@ class TripViewModel(private val repository: TripRepository) : ViewModel() {
         )
     }
 
-    private fun calculateTotalDistance(places: List<Place>): Double {
+    fun calculateTotalDistance(places: List<Place>): Double {
         if (places.size < 2){
             return 0.0
         }

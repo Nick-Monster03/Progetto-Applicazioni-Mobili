@@ -16,6 +16,7 @@ class NoteViewModel(application: Application, private val tripId: Int) : Android
     val notes = noteRepo.getNotesByTripId(tripId)
     val places = placeRepo.getPlacedByIdTrip(tripId)
 
+
     class Factory(private val app: Application, private val tripId: Int) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             return NoteViewModel(app, tripId) as T
