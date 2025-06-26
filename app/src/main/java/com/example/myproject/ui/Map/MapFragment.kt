@@ -141,6 +141,8 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                     if (viewModel.isTripRunning.value == true) {
                         viewModel.stopTrip(place)
                     } else {
+                        polylinePoints.clear()
+                        polyline?.points = polylinePoints
                         viewModel.startTrip(place)
                     }
                 } else {
@@ -197,8 +199,8 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         polyline = googleMap.addPolyline(
             PolylineOptions()
                 .color(Color.BLUE)
-                .width(12f)
-                .addAll(polylinePoints) // vuoto all’inizio
+                .width(15f)
+                .addAll(polylinePoints)
         )
     }
 

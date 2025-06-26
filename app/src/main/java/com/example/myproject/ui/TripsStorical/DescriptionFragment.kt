@@ -1,5 +1,6 @@
 package com.example.myproject
 
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -8,6 +9,7 @@ import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Spinner
+import androidx.annotation.RequiresApi
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -16,6 +18,7 @@ import com.example.myProject.R
 import com.example.myproject.ui.TripsStorical.TripAdapter
 import com.example.myproject.ui.TripsStorical.TripRepository
 import com.example.myproject.ui.TripsStorical.TripViewModel
+import java.time.LocalDate
 
 class DescriptionFragment : Fragment() {
 
@@ -34,6 +37,7 @@ class DescriptionFragment : Fragment() {
         return inflater.inflate(R.layout.nav_storical, container, false)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         spinnerTipo = view.findViewById(R.id.spinner_trip_type)
@@ -69,15 +73,49 @@ class DescriptionFragment : Fragment() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun filtraViaggi() {
         val tipo = spinnerTipo.selectedItem.toString()
         val start_date = editDataStart.text.toString()
-        val destination_date = editDataDestination.text.toString()
+        val destination_date = if (editDataDestination.text.toString().isNullOrEmpty()) LocalDate.now().toString() else editDataDestination.text.toString()
+
+        // Controllo formato date
+        if (!isValidDateFormat(start_date) || !isValidDateFormat(destination_date)) {
+            showAlert("Formato date non corretto")
+            return
+        }
+
+        // Controllo incongruenza tra date
+        if (LocalDate.parse(start_date).isAfter(LocalDate.parse(destination_date))) {
+            showAlert("La data di partenza non può essere posteriore a quella di destinazione")
+            return
+        }
+
+        // Operazioni se i controlli sono superati
         tripViewModel.filtraViaggi(tipo, start_date, destination_date)
             .observe(viewLifecycleOwner) { trips ->
                 tripAdapter.submitList(trips)
-
             }
+    }
+
+    // Funzione per verificare il formato delle date
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun isValidDateFormat(date: String): Boolean {
+        return try {
+            LocalDate.parse(date)
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    // Funzione per mostrare un AlertDialog
+    private fun showAlert(message: String) {
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Errore")
+            .setMessage(message)
+            .setPositiveButton("OK", null)
+            .show()
     }
         // Implementa la logica per filtrare i viaggi
         // Ad esempio, puoi mostrare un dialogo o un menu a discesa per selezionare i filtri

@@ -106,7 +106,7 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         return placeRepository.getPlaceByCordinates(latitudine = lat, longitudine = lng)
     }
 
-    suspend fun saveTripPoint(latitude: Double, longitude: Double) {
+    fun saveTripPoint(latitude: Double, longitude: Double) {
         if (isTripRunning.value == true) {
             val place = Place(
                 id = 0,

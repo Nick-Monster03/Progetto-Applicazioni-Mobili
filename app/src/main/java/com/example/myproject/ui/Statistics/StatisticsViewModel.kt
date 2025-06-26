@@ -31,6 +31,8 @@ class StatisticsViewModel(private val repository: TripRepository) : ViewModel() 
     val heatmapPoints: LiveData<List<LatLng>> = _heatmapPoints
 
     init {
+        //Iniziallizziamo filteredTrips con filtro ALL (_periodFilter) all' inizio cioè tutti i viaggi fatti
+        // fino ad oggi (o meglio con data di arrivo antecedente a quella di oggi)
         filteredTrips.addSource(_periodFilter) { filter ->
             loadTripsForFilter(filter)
         }
@@ -44,14 +46,16 @@ class StatisticsViewModel(private val repository: TripRepository) : ViewModel() 
             PeriodFilter.ALL -> null
         }?.format(DateTimeFormatter.ISO_DATE)
 
-        val source = repository.getFilteredTrips(type = null, fromDate = fromDate, toDate = null)
+        val source = repository.getFilteredTrips(type = null, fromDate = fromDate, toDate = LocalDate.now().format(DateTimeFormatter.ISO_DATE))
 
         filteredTrips.addSource(source) { trips ->
             filteredTrips.value = trips
-            filteredTrips.removeSource(source) // Evita di accumulare più sorgenti
+            filteredTrips.removeSource(source)
         }
     }
 
+    //Ogni volta che questa funzione sarà chiamata, aggiornerà il filtro corrente
+    //e quindi aggiornerà anche filteredTrips richiamando loadTripsForFilter
     fun setFilter(filter: PeriodFilter) {
         _periodFilter.value = filter
     }
@@ -124,27 +128,35 @@ class StatisticsViewModel(private val repository: TripRepository) : ViewModel() 
     fun computeHeatmapPoints(trips: List<Trip>) {
         viewModelScope.launch {
             val allPoints = mutableListOf<LatLng>()
+            //Iteriamo tutti i viaggi per ottenere tutti i posti visitati
             for (trip in trips) {
                 val placesLiveData = repository.getPlacedById(trip.id)
+                //usiamo questa funzione per sospendere l'esecuzione fino a quando il LiveData non ha un valore
+                //se il valore è ancora null allora passeremo al trip successivo
                 val places = suspendUntilValue(placesLiveData) ?: continue
                 allPoints.addAll(places.map { LatLng(it.latitudine, it.longitudine) })
             }
+            //aggiorniamo il liveData con tutti i punti ottenuti (come oggetti LatLng)
             _heatmapPoints.postValue(allPoints)
         }
     }
+
+
     private suspend fun <T> suspendUntilValue(liveData: LiveData<T>): T? {
         return kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
+           // Crea un observer che osserva il valore del LiveData.
             val observer = object : androidx.lifecycle.Observer<T> {
-
+             //Quando il LiveData emette un nuovo valore, questo metodo viene chiamato e controlla che non sia null
+            // se il nuovo valore è diverso da null allora possiamo riprendere l' iterazione in computeHeatmapPoints
                 override fun onChanged(t: T) {
                     if (t != null) {
                         liveData.removeObserver(this)
+                        // Riprendiamo la coroutine restituendo il valore ricevuto
                         continuation.resume(t, null)
                     }
                 }
-
-
             }
+            //Avviamo l'osservazione del LiveData senza legarlo al lifecycle (va rimosso manualmente)
             liveData.observeForever(observer)
         }
     }

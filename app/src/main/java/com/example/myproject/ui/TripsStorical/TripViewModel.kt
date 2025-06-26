@@ -3,8 +3,10 @@ package com.example.myproject.ui.TripsStorical
 import android.app.AlertDialog
 import android.content.Context
 import android.location.Location
+import android.os.Build
 import android.widget.EditText
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
@@ -17,6 +19,7 @@ import com.example.myproject.Database.Entities.TripType
 import com.example.myproject.NoteRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 class TripViewModel(private val repository: TripRepository) : ViewModel() {
 
@@ -51,6 +54,7 @@ class TripViewModel(private val repository: TripRepository) : ViewModel() {
 
 
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun filtraViaggi(tipo:String, dataStart: String, dataDestination: String): LiveData<List<Trip>> {
         var type: TripType? = null
         if(tipo == "EXCURSION")
@@ -65,7 +69,7 @@ class TripViewModel(private val repository: TripRepository) : ViewModel() {
         return repository.getFilteredTrips(
             type,
             if (dataStart.isEmpty()) null else dataStart,
-            if (dataDestination.isEmpty()) null else dataDestination
+            if (dataDestination.isEmpty()) LocalDate.now().toString() else dataDestination
         )
     }
 
