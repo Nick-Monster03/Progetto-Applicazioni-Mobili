@@ -29,4 +29,6 @@ interface PhotoDao {
     @Query("DELETE FROM photo_table")
     fun deleteDone()
 
+    @Query("SELECT count(*) FROM photo_table WHERE id_trip = :id_trip AND  image_path = :image_path ")
+    fun existPhoto(id_trip:Int, image_path:String): Int
 }

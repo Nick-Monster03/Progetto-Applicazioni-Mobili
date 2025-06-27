@@ -11,6 +11,7 @@ import android.graphics.Color
 import android.location.Geocoder
 import android.os.Bundle
 import android.os.Looper
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -21,12 +22,16 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.example.myProject.R
 import com.example.myproject.Database.Entities.Place
 import com.example.myproject.GeofenceReceiver
+import com.example.myproject.TrackingService
+import com.example.myproject.ui.map.selectTripTypeDialog
 import com.google.android.gms.location.*
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -60,6 +65,8 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     private var geofenceAdded = false
     private var polyline: Polyline? = null
     private val polylinePoints = mutableListOf<LatLng>()
+    private lateinit var googleMap: GoogleMap
+
 
 
     override fun onCreateView(
@@ -76,53 +83,50 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         btn_add_note.visibility = View.GONE
         textView = view.findViewById(R.id.textView)
 
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
+        btnStartAndStop.setOnClickListener {
+            val prefs = requireContext().getSharedPreferences("prefs", Context.MODE_PRIVATE)
+            val isServiceRunning = prefs.getBoolean("tracking_running", false)
 
-        locationCallback = object : LocationCallback() {
-            override fun onLocationResult(result: LocationResult) {
-                for (location in result.locations) {
-                    val latLng = LatLng(location.latitude, location.longitude)
-                    if (viewModel.isTripRunning.value == true) {
-                        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                            val latitude = Math.round(location.latitude * 10000.0) / 10000.0
-                            val longitude = Math.round(location.longitude * 10000.0) / 10000.0
-                            viewModel.saveTripPoint(latitude, longitude)
+            getCurrentPlace { place ->
+                if (place != null) {
+                    if (viewModel.isTripRunning.value == true || isServiceRunning) {
+                        viewModel.stopTrip(place)
+                        requireContext().stopService(Intent(requireContext(), TrackingService::class.java))
+                        prefs.edit().putBoolean("tracking_running", false).apply()
+                    } else {
+                        requireContext().selectTripTypeDialog { selectedType ->
+                            viewModel.startTrip(place, selectedType) { startedTripId ->
+                                val intent = Intent(requireContext(), TrackingService::class.java).apply {
+                                    action = TrackingService.ACTION_START
+                                    putExtra("tripId", startedTripId.toLong())
+                                }
+
+                                requireContext().stopService(Intent(requireContext(), TrackingService::class.java))
+                                requireContext().startService(intent)
+                                prefs.edit().putBoolean("tracking_running", true).apply()
+
+
+                            }
                         }
-                        polylinePoints.add(latLng)
-                        polyline?.points = polylinePoints
                     }
-                    viewModel.updateLocation(latLng)
-                    if (!geofenceAdded) {
-                        addGeofence()
-                        geofenceAdded = true
-                    }
+                } else {
+                    Toast.makeText(requireContext(), "Posizione non disponibile", Toast.LENGTH_SHORT).show()
                 }
             }
         }
-
-        if (ActivityCompat.checkSelfPermission(
-                requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED ||
-            ActivityCompat.checkSelfPermission(
-                requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-                if (location != null) {
-                    val latLng = LatLng(location.latitude, location.longitude)
-                    viewModel.updateLocation(latLng)
-                    val mapFragment = childFragmentManager.findFragmentById(R.id.map) as? SupportMapFragment
-                    mapFragment?.getMapAsync(this@MapFragment)
+        //Aggiorno dinamicamente una polilinea sulla mappa ogni volta che cambia il contenuto del
+        //LiveData tripPlaces. Se non ci sono luoghi (places è vuoto), la polilinea viene semplicemente resettata.
+        viewModel.tripPlaces.observe(viewLifecycleOwner) { places ->
+            if (::googleMap.isInitialized) {
+                polylinePoints.clear()
+                if (places.isNotEmpty()) { // se non è vuota significa che il viaggio è in corso
+                    //se è vuota vuol dire che è appena iniziato e bypassareà l' if
+                    polylinePoints.addAll(
+                        places.map { LatLng(it.latitudine, it.longitudine) }
+                    )
                 }
+                polyline?.points = polylinePoints
             }
-        } else {
-            ActivityCompat.requestPermissions(
-                requireActivity(),
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                ), 1001
-            )
         }
 
         btn_photo.setOnClickListener {
@@ -130,72 +134,44 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             intent.type = "image/*"
             startActivityForResult(intent, GALLERY_REQUEST_CODE)
         }
+        btn_add_note.setOnClickListener { viewModel.showNoteDialog(requireContext()) }
 
-        btn_add_note.setOnClickListener{
-            viewModel.showNoteDialog(requireContext())
+        viewModel.isTripRunning.observe(viewLifecycleOwner) { isRunning ->
+            btn_photo.visibility = if (isRunning) View.VISIBLE else View.GONE
+            btn_add_note.visibility = if (isRunning) View.VISIBLE else View.GONE
+            btnStartAndStop.text = if (isRunning) "Stop" else "Avvia"
+            textView.text = if (isRunning) "Interrompi Viaggio" else "Avvia il tuo Viaggio"
         }
 
-        btnStartAndStop.setOnClickListener {
-            getCurrentPlace { place ->
-                if (place != null) {
-                    if (viewModel.isTripRunning.value == true) {
-                        viewModel.stopTrip(place)
-                    } else {
-                        polylinePoints.clear()
-                        polyline?.points = polylinePoints
-                        viewModel.startTrip(place)
-                    }
-                } else {
-                    Toast.makeText(requireContext(), "Posizione non disponibile", Toast.LENGTH_SHORT).show()
+        viewModel.location.observe(viewLifecycleOwner) { loc ->
+            if (loc != null && ::googleMap.isInitialized) {
+                val position = CameraPosition.Builder()
+                    .target(loc)
+                    .zoom(17f)
+                    .bearing(90f)
+                    .tilt(30f)
+                    .build()
+                googleMap.animateCamera(CameraUpdateFactory.newCameraPosition(position))
+            }
+        }
+
+        val mapFragment = childFragmentManager.findFragmentById(R.id.map) as? SupportMapFragment
+        mapFragment?.getMapAsync(this)
+        val fusedClient = LocationServices.getFusedLocationProviderClient(requireContext())
+        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            fusedClient.lastLocation.addOnSuccessListener { location ->
+                if (location != null) {
+                    viewModel.updateLocation(LatLng(location.latitude, location.longitude))
                 }
             }
         }
-        /*DEBUG VISUALIZZA IL BOTTONE PER AGGIUNGERE PUNTI ALLA POLYLINE
-        val btn_debug = view.findViewById<Button>(R.id.debug_button) // devi aggiungere il bottone nel layout!
-        btn_debug.setOnClickListener {
-            viewLifecycleOwner.lifecycleScope.launch {
-                val testPoints = listOf(
-                    LatLng(44.4949, 11.3426), // Bologna
-                    LatLng(44.4955, 11.3430),
-                    LatLng(44.4960, 11.3435),
-                    LatLng(44.4965, 11.3440)
-                )
-                testPoints.forEach {
-                    polylinePoints.add(it)
-                    polyline?.points = polylinePoints
-                    delay(1000) // aspetta 1 secondo tra i punti
-                }
-            }
-        }*/
-
-        viewModel.isTripRunning.observe(viewLifecycleOwner, Observer { isRunning ->
-            if (isRunning) {
-                btn_photo.visibility = View.VISIBLE
-                btn_add_note.visibility = View.VISIBLE
-                btnStartAndStop.text = "Stop"
-                textView.text = "Interrompi Viaggio"
-            } else {
-                btn_photo.visibility = View.GONE
-                btn_add_note.visibility = View.GONE
-                btnStartAndStop.text = "Avvia"
-                textView.text = "Avvia il tuo Viaggio"
-            }
-        })
 
         return view
+
     }
 
-    override fun onMapReady(googleMap: GoogleMap) {
-        viewModel.location.value?.let { loc ->
-            val position = CameraPosition.Builder()
-                .target(loc)
-                .zoom(17f)
-                .bearing(90f)
-                .tilt(30f)
-                .build()
-            googleMap.mapType = GoogleMap.MAP_TYPE_NORMAL
-            googleMap.moveCamera(CameraUpdateFactory.newCameraPosition(position))
-        }
+    override fun onMapReady(map: GoogleMap) {
+        googleMap = map
         polyline = googleMap.addPolyline(
             PolylineOptions()
                 .color(Color.BLUE)
@@ -204,67 +180,8 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         )
     }
 
-    override fun onStart() {
-        super.onStart()
-        if (ActivityCompat.checkSelfPermission(
-                requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED ||
-            ActivityCompat.checkSelfPermission(
-                requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            //Aggiorna se ci sono spostamenti di 50 m in 10 secondi
-            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10000).setMinUpdateDistanceMeters(50f).build()
-            fusedLocationClient.requestLocationUpdates(request, locationCallback, Looper.getMainLooper())
-            addGeofence()
-        }
-    }
 
-    private fun addGeofence() {
-        val geofencingClient = LocationServices.getGeofencingClient(requireContext())
 
-        val geofence = Geofence.Builder()
-            .setRequestId("travel_50m")
-            .setCircularRegion(
-                viewModel.location.value?.latitude ?: return,
-                viewModel.location.value?.longitude ?: return,
-                50f
-            )
-            .setExpirationDuration(Geofence.NEVER_EXPIRE)
-            .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT)
-            .build()
-
-        val geofenceRequest = GeofencingRequest.Builder()
-            .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
-            .addGeofence(geofence)
-            .build()
-
-        val intent = Intent(requireContext(), GeofenceReceiver::class.java)
-        val pendingIntent = PendingIntent.getBroadcast(
-            requireContext(),
-            0,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        if (ActivityCompat.checkSelfPermission(
-                requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            geofencingClient.addGeofences(geofenceRequest, pendingIntent)
-                .addOnSuccessListener {
-                    Toast.makeText(requireContext(), "chiamo addGeofence con lat=${viewModel.location.value?.latitude}", Toast.LENGTH_SHORT).show()
-                }
-                .addOnFailureListener {
-                    Toast.makeText(requireContext(), "Errore geofence", Toast.LENGTH_SHORT).show()
-                }
-        }
-    }
-
-    override fun onStop() {
-        super.onStop()
-        fusedLocationClient.removeLocationUpdates(locationCallback)
-    }
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -282,30 +199,45 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     }
 
     private fun getCurrentPlace(callback: (Place?) -> Unit) {
+        val fusedClient = LocationServices.getFusedLocationProviderClient(requireContext())
+
         if (ActivityCompat.checkSelfPermission(
-                requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED &&
-            ActivityCompat.checkSelfPermission(
-                requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION
+                requireContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
+            Toast.makeText(requireContext(), "Permessi posizione non concessi", Toast.LENGTH_SHORT).show()
             callback(null)
             return
         }
 
-        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+        fusedClient.lastLocation.addOnSuccessListener { location ->
             if (location != null) {
-                val cityName = getCityFromCoordinates(requireContext(), location.latitude, location.longitude) ?: ""
-                val currentPlace = Place(
-                    id = 0,
-                    latitudine = Math.round(location.latitude * 10000.0) / 10000.0,
-                    longitudine = Math.round(location.longitude * 10000.0) / 10000.0,
-                    name = cityName
+                val cityName = try {
+                    Geocoder(requireContext(), Locale.getDefault())
+                        .getFromLocation(location.latitude, location.longitude, 1)
+                        ?.firstOrNull()
+                        ?.locality ?: "Unknown"
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                    "Unknown"
+                }
+
+                callback(
+                    Place(
+                        id = 0,
+                        latitudine = String.format(Locale.US, "%.4f", location.latitude).toDouble(),
+                        longitudine = String.format(Locale.US, "%.4f", location.longitude).toDouble(),
+                        name = cityName
+                    )
                 )
-                callback(currentPlace)
             } else {
+                Toast.makeText(requireContext(), "Impossibile ottenere la posizione attuale", Toast.LENGTH_SHORT).show()
                 callback(null)
             }
+        }.addOnFailureListener {
+            Toast.makeText(requireContext(), "Errore nell'ottenere la posizione", Toast.LENGTH_SHORT).show()
+            callback(null)
         }
     }
 
@@ -333,33 +265,66 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                 getCurrentPlace { place ->
                     if (place != null) {
                         if (viewModel.isTripRunning.value == true) {
-                            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                                val id_place = viewModel.getPlaceIdByCordinates(place.latitudine, place.longitudine)
-                                val id_trip = viewModel.tripId.value ?: return@launch
+                            val id_trip = viewModel.tripId.value
+                            if (id_trip == null) {
+                                Toast.makeText(requireContext(), "ID del viaggio non disponibile", Toast.LENGTH_SHORT).show()
+                                return@getCurrentPlace
+                            }
 
-                                if(viewModel.existTripPlace(id_trip, id_place) == false) {
-                                    Toast.makeText(requireContext(), "Il luogo non appartiene al viaggio corrente", Toast.LENGTH_SHORT).show()
-                                    return@launch
+                            // Osserviamo i dati sul Main Thread
+                            viewModel.getPlacesOfTrip(id_trip).observeOnce(viewLifecycleOwner) { tripPlaces ->
+                                Log.e("MapFragment", "Trip Places: $id_trip")
+                                Log.e("MapFragment", "Trip Places Size: ${tripPlaces.size}")
+                                if (tripPlaces.isNullOrEmpty()) {
+                                    Toast.makeText(requireContext(), "Nessun luogo disponibile per associare la foto", Toast.LENGTH_SHORT).show()
+                                    return@observeOnce
                                 }
 
-                                // Salva il file immagine
-                                val filename = "photo_${System.currentTimeMillis()}.jpg"
-                                val photosDir = File(requireContext().filesDir, "photos")
-                                if (!photosDir.exists()) photosDir.mkdirs()
+                                val id_place = viewModel.getClosestPlaceId(
+                                    place.latitudine,
+                                    place.longitudine,
+                                    tripPlaces
+                                )
 
-                                val photoFile = File(photosDir, filename)
-                                FileOutputStream(photoFile).use {
-                                    bitmap.compress(Bitmap.CompressFormat.JPEG, 85, it)
+                                //Troviamo l' ID del nostro luogo attuale dato che sarà sicuramente registrato nel db
+                                /*val lat = String.format(Locale.US, "%.4f", place.latitudine).toDouble()
+                                val long = String.format(Locale.US, "%.4f", place.longitudine).toDouble()
+                                val id_place = viewModel.getPlaceIdByCordinates(lat, long)*/
+
+                                tripPlaces.forEach { tripPlace ->
+                                    Log.e("MapFragment", "TripPlace - Latitudine: ${tripPlace.latitudine}, Longitudine: ${tripPlace.longitudine}")
                                 }
 
-                                withContext(Dispatchers.Main) {
-                                    viewModel.addPhoto(
-                                        id_place = id_place,
-                                        id_trip = id_trip,
-                                        photo_path = photoFile.absolutePath,
-                                        timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
-                                    )
-                                    Toast.makeText(requireContext(), "Foto aggiunta con successo", Toast.LENGTH_SHORT).show()
+                                Log.e("MapFragment", "ID Place: $id_place")
+
+                                if (id_place == -1) {
+                                    Toast.makeText(requireContext(), "Nessun luogo vicino trovato per questa foto", Toast.LENGTH_SHORT).show()
+                                    return@observeOnce
+                                }
+
+                                // Adesso lanciamo la Coroutine per salvare la foto
+                                viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                                    val filename = "photo_${System.currentTimeMillis()}.jpg"
+                                    val photosDir = File(requireContext().filesDir, "photos")
+                                    if (!photosDir.exists()) photosDir.mkdirs()
+
+                                    val photoFile = File(photosDir, filename)
+                                    FileOutputStream(photoFile).use {
+                                        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, it)
+                                    }
+
+                                    if(viewModel.existPhoto(id_trip, photoFile.absolutePath)) {
+                                        return@launch
+                                    }
+                                    withContext(Dispatchers.Main) {
+                                        viewModel.addPhoto(
+                                            id_place = id_place,
+                                            id_trip = id_trip,
+                                            photo_path = photoFile.absolutePath,
+                                            timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
+                                        )
+                                        Toast.makeText(requireContext(), "Foto aggiunta con successo", Toast.LENGTH_SHORT).show()
+                                    }
                                 }
                             }
                         } else {
@@ -373,27 +338,40 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         }
     }
 
-}
-    /*DEBUG VISUALIZZA LA IMAGE VIEW IN ALTO (decommentare la Image view anche nel layout)
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == GALLERY_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            val imageUri = data?.data
-            if (imageUri != null) {
-                val inputStream = requireContext().contentResolver.openInputStream(imageUri)
-                val imageBytes = inputStream?.readBytes()
+    //Questa estensione mi evita ogni volta che l' observer immetta ogni volta tutti i dati
+    //del LiveData tripPlaces ottenuto con viewModel.getPlacesOfTrip(id_trip)
+    //Se l' observer non venisse rimosso alla prima chiamata allora sarebbe effettuata l' operazione di
+    //aggiunta di una foto ogni volta che nel LiveData viene aggiunto qualcosa, causando un loop infinito
+    fun <T> LiveData<T>.observeOnce(owner: LifecycleOwner, observer: Observer<T>) {
+        observe(owner, object : Observer<T> {
+            override fun onChanged(t: T) {
+                observer.onChanged(t)
+                removeObserver(this)
+            }
+        })
+    }
 
-                if (imageBytes != null) {
-                    val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                    val imageView = view?.findViewById<ImageView>(R.id.imageView_photo)
-                    imageView?.setImageBitmap(bitmap)
-                } else {
-                    Toast.makeText(requireContext(), "Errore nella lettura dell'immagine", Toast.LENGTH_SHORT).show()
-                }
+}
+/*DEBUG VISUALIZZA LA IMAGE VIEW IN ALTO (decommentare la Image view anche nel layout)
+override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+    super.onActivityResult(requestCode, resultCode, data)
+    if (requestCode == GALLERY_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+        val imageUri = data?.data
+        if (imageUri != null) {
+            val inputStream = requireContext().contentResolver.openInputStream(imageUri)
+            val imageBytes = inputStream?.readBytes()
+
+            if (imageBytes != null) {
+                val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                val imageView = view?.findViewById<ImageView>(R.id.imageView_photo)
+                imageView?.setImageBitmap(bitmap)
+            } else {
+                Toast.makeText(requireContext(), "Errore nella lettura dell'immagine", Toast.LENGTH_SHORT).show()
             }
         }
+    }
 
-        */
+    */
 
 
 

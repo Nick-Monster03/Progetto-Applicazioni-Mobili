@@ -13,6 +13,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.application
+import androidx.lifecycle.switchMap
 import androidx.lifecycle.viewModelScope
 import com.example.myproject.Database.Entities.Note
 import com.example.myproject.Database.Entities.Photo
@@ -53,28 +54,40 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     private val _placeId = MutableLiveData<Int>()
     val placeId: LiveData<Int> get() = _placeId
 
+    val tripPlaces: LiveData<List<Place>> = _tripId.switchMap { id ->
+        tripRepository.getPlacedById(id).switchMap { places ->
+            if (places.isEmpty()) {
+                MutableLiveData(emptyList())
+            } else {
+                MutableLiveData(places)
+            }
+        }
+    }
+
+
+
+
     fun updateLocation(loc: LatLng) {
         _location.value = loc
     }
 
-    fun startTrip(place: Place) {
-        val todayDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-        val trip = Trip(0, place.name, "", todayDate, "", "", TripType.NO_PROGRAM)
+    fun startTrip(place: Place, type: TripType, callback: (tripId: Int) -> Unit) {
+        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        val trip = Trip(0, place.name, "", today, "", "", type)
 
         viewModelScope.launch(Dispatchers.IO) {
             placeRepository.insert(place)
             val pId = placeRepository.getPlaceId(place)
             val tId = tripRepository.insertTrip(trip).toInt()
-            val confirmedTripId = tripRepository.getLastTrip()
-            tripPlaceRepository.insertTripPlace(TripPlace(tripId = confirmedTripId, placeId = pId))
+            tripPlaceRepository.insertTripPlace(TripPlace(tripId = tId, placeId = pId))
 
-            _tripId.postValue(confirmedTripId)
+            _tripId.postValue(tId)
             _placeId.postValue(pId)
             _isTripRunning.postValue(true)
-           // Log.d("MapViewModel", "Trip started with ID: $tripId and $placeId" )
-            _isTripRunning.postValue(true)
+            callback(tId)
         }
     }
+
 
     fun stopTrip(place: Place) {
         val todayDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
@@ -110,8 +123,8 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         if (isTripRunning.value == true) {
             val place = Place(
                 id = 0,
-                latitudine = latitude,
-                longitudine = longitude,
+                latitudine = String.format(Locale.US, "%.4f", latitude).toDouble(),
+                longitudine = String.format(Locale.US, "%.4f", longitude).toDouble(),
                 name = getCityFromCoordinates(application, latitude, longitude) ?: "Unknown Place"
             )
             placeRepository.insert(place)
@@ -164,8 +177,18 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         builder.create().show()
     }
 
+    fun getPlacesOfTrip(tripId: Int): LiveData<List<Place>> {
+        return placeRepository.getPlacedByIdTrip(tripId)
+    }
+
     fun existTripPlace(tripId: Int, placeId: Int): Boolean {
         return tripRepository.existsTripWithId(tripId) && placeRepository.existsPlaceById(placeId)
+    }
+
+    //Funzione che richiama la query per verificare che laa stessa foto non sia già stata aggiunta
+    //allo stesso viaggio anche se in posti differenti così da evitare duplicati
+    fun existPhoto(id_trip: Int, image_path: String): Boolean {
+        return photoRepository.existsPhoto(id_trip, image_path)
     }
 
     private fun getCityFromCoordinates(context: Context, lat: Double, lon: Double): String? {
@@ -181,6 +204,39 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
             "Sconosciuto"
         }
     }
+
+    fun getClosestPlaceId(
+        lat: Double,
+        lon: Double,
+        allPlaces: List<Place>,
+        toleranceMeters: Float = 50f
+    ): Int {
+        val target = android.location.Location("").apply {
+            latitude = lat
+            longitude = lon
+        }
+        val closest = allPlaces.minByOrNull { place ->
+            val loc = android.location.Location("").apply {
+                latitude = place.latitudine
+                longitude = place.longitudine
+            }
+            target.distanceTo(loc)
+        }
+        val distance = closest?.let {
+            val loc = android.location.Location("").apply {
+                latitude = it.latitudine
+                longitude = it.longitudine
+            }
+            target.distanceTo(loc)
+        }
+        return if (closest != null && distance != null && distance < toleranceMeters) {
+            closest.id
+        } else {
+            -1
+        }
+    }
+
+
     class MapViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(MapViewModel::class.java)) {

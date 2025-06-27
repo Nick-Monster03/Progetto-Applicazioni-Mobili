@@ -37,6 +37,11 @@
 
         </activity>
         >
+        <service
+            android:name="com.example.myproject.TrackingService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+
 
         <receiver android:name="com.example.myproject.GeofenceReceiver" android:exported="true"/>
     </application>

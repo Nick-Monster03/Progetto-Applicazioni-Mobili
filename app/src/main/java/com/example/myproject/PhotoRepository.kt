@@ -38,4 +38,8 @@ class PhotoRepository(app: Application) {
     suspend fun getCountPhotosByTrip(tripId: Int): Int {
         return photoDao.getCountPhotosByTrip(tripId)
     }
+
+    fun existsPhoto(id_trip: Int, image_path: String): Boolean {
+        return photoDao.existPhoto(id_trip, image_path) > 0
+    }
 }
