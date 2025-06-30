@@ -4,9 +4,11 @@ import android.app.AlertDialog
 import android.app.Application
 import android.content.Context
 import android.location.Geocoder
+import android.os.Build
 import android.util.Log
 import android.widget.EditText
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -71,6 +73,7 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         _location.value = loc
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun startTrip(place: Place, type: TripType, callback: (tripId: Int) -> Unit) {
         val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
         val trip = Trip(0, place.name, "", today, "", "", type)
@@ -79,7 +82,7 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
             placeRepository.insert(place)
             val pId = placeRepository.getPlaceId(place)
             val tId = tripRepository.insertTrip(trip).toInt()
-            tripPlaceRepository.insertTripPlace(TripPlace(tripId = tId, placeId = pId))
+            tripPlaceRepository.insertTripPlace(TripPlace(tripId = tId, placeId = pId, time_stamp = java.time.LocalDate.now().toString()))
 
             _tripId.postValue(tId)
             _placeId.postValue(pId)
@@ -89,6 +92,7 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     }
 
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun stopTrip(place: Place) {
         val todayDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
@@ -97,8 +101,9 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
             val pId = placeRepository.getPlaceId(place)
             val tId = _tripId.value ?: return@launch
             tripRepository.updateTrip(tId, place.name, todayDate)
-            tripPlaceRepository.insertTripPlace(TripPlace(tripId = tId, placeId = pId))
+            tripPlaceRepository.insertTripPlace(TripPlace(tripId = tId, placeId = pId, time_stamp = java.time.LocalDate.now().toString()))
             _isTripRunning.postValue(false)
+            _tripId.postValue(-1)
         }
     }
 
@@ -119,6 +124,7 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         return placeRepository.getPlaceByCordinates(latitudine = lat, longitudine = lng)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun saveTripPoint(latitude: Double, longitude: Double) {
         if (isTripRunning.value == true) {
             val place = Place(
@@ -132,7 +138,7 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
             val tId = _tripId.value ?: return
 
             tripPlaceRepository.insertTripPlace(
-                TripPlace(tripId = tId, placeId = pId)
+                TripPlace(tripId = tId, placeId = pId, time_stamp = java.time.LocalDate.now().toString())
             )
             _placeId.postValue(pId)
         }

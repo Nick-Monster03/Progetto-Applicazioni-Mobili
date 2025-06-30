@@ -22,5 +22,6 @@ import androidx.room.ForeignKey
 )
 class TripPlace(
     val tripId: Int,
-    val placeId: Int
+    val placeId: Int,
+    val time_stamp: String
 )

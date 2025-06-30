@@ -2,6 +2,7 @@ package com.example.myproject.ui.ProgramTrip
 
 import android.app.AlertDialog
 import android.location.Geocoder
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -12,6 +13,7 @@ import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Spinner
+import androidx.annotation.RequiresApi
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.example.myProject.R
@@ -37,6 +39,7 @@ class ProgramTripFragment : Fragment() {
         return inflater.inflate(R.layout.nav_program_trip, container, false)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -204,8 +207,8 @@ class ProgramTripFragment : Fragment() {
                     //Log.d("PLACE", "id_place_start: $id_place_start, id_place_destination: $id_place_destination")
                     var id_trip = programTripViewModel.addTrip(trip)
                     //Log.d("TRIP_ID", "$id_trip: Trip added to the database with id $id_trip")
-                    programTripViewModel.addTripPlace(TripPlace(id_trip.toInt(), id_place_start))
-                    programTripViewModel.addTripPlace(TripPlace(id_trip.toInt(), id_place_destination))
+                    programTripViewModel.addTripPlace(TripPlace(id_trip.toInt(), id_place_start, time_stamp = java.time.LocalDate.now().toString()))
+                    programTripViewModel.addTripPlace(TripPlace(id_trip.toInt(), id_place_destination,time_stamp = java.time.LocalDate.now().toString()))
                 }
             }.start()
         }

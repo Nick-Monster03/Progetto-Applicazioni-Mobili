@@ -12,6 +12,7 @@ import android.location.Location
 import com.google.android.gms.location.LocationRequest
 import android.os.Build
 import android.os.Looper
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
@@ -76,33 +77,57 @@ class TrackingService : LifecycleService() {
     }
 
     private val locationCallback = object : LocationCallback() {
+        @RequiresApi(Build.VERSION_CODES.O)
         override fun onLocationResult(result: LocationResult) {
+            if (!isTracking) return
             result.locations.forEach { location ->
-                if (lastLocation == null || lastLocation!!.distanceTo(location) >= 100f) {
+                // 1) Filtra accuratezza scarsa
+                if (location.accuracy > 25f) {
+                    //Log.w("TrackingService", "Ignorato punto con accuratezza scarsa (${location.accuracy}m)")
+                    return@forEach
+                }
+
+                // 2) Se abbiamo un punto precedente, controlla la distanza massima
+                if (lastLocation != null) {
+                    val distance = lastLocation!!.distanceTo(location)
+                    /*if (distance > 500f) {
+                       // Log.w("TrackingService", "Ignorato punto troppo distante dal precedente (${distance}m)")
+                        //Toast.makeText(requireContext(application), "Punto ignoRATO PERCHè TROPPO DISTANTE")
+                        return@forEach
+                    }*/
+
+                    // Aggiorna lastLocation solo se il punto è valido
                     lastLocation = location
-                    val latitudine = String.format(Locale.US, "%.4f", location.latitude).toDouble()
-                    val longitudine = String.format(Locale.US, "%.4f", location.longitude).toDouble()
-                    val place = Place(
-                        id = 0,
-                        latitudine = latitudine,
-                        longitudine = longitudine,
-                        name = getCityFromCoordinates(this@TrackingService, latitudine, longitudine) ?: "Unknown",
-                    )
 
-                    CoroutineScope(Dispatchers.IO).launch {
-                        val placeRepo = PlaceRepository(application)
-                        val tripPlaceRepo = TripPlaceRepository(application)
+                } else {
+                    // Se è il primo punto, accettalo e imposta lastLocation
+                    lastLocation = location
+                }
 
-                        placeRepo.insert(place)
-                        val placeId = placeRepo.getPlaceByCordinates(place.latitudine, place.longitudine)
-                        tripPlaceRepo.insertTripPlace(TripPlace(tripId = tripId.toInt(), placeId = placeId))
-                    }
+                // 3) Prosegui a salvare la posizione
+                val latitudine = String.format(Locale.US, "%.4f", location.latitude).toDouble()
+                val longitudine = String.format(Locale.US, "%.4f", location.longitude).toDouble()
+                val place = Place(
+                    id = 0,
+                    latitudine = latitudine,
+                    longitudine = longitudine,
+                    name = getCityFromCoordinates(this@TrackingService, latitudine, longitudine) ?: "Unknown",
+                )
+
+                CoroutineScope(Dispatchers.IO).launch {
+                    val placeRepo = PlaceRepository(application)
+                    val tripPlaceRepo = TripPlaceRepository(application)
+
+                    placeRepo.insert(place)
+                    val placeId = placeRepo.getPlaceByCordinates(place.latitudine, place.longitudine)
+                    tripPlaceRepo.insertTripPlace(TripPlace(tripId = tripId.toInt(), placeId = placeId, time_stamp = java.time.LocalDate.now().toString()))
                 }
             }
         }
     }
 
     private fun startLocationUpdates() {
+        isTracking = true
         val request = LocationRequest.create().apply {
             interval = 10_000L
             fastestInterval = 5_000L
@@ -118,6 +143,7 @@ class TrackingService : LifecycleService() {
 
     private fun stopLocationUpdates() {
         fusedClient.removeLocationUpdates(locationCallback)
+        isTracking = false
     }
 
     private fun buildNotification(): Notification {

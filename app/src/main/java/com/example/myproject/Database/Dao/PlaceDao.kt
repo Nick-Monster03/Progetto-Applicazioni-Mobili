@@ -31,7 +31,7 @@ interface PlaceDao {
     @Query("SELECT count(*) FROM place_table WHERE latitudine = :latitudine AND longitudine = :longitudine")
     fun getCountPlacesByCoordinates(latitudine: Double, longitudine: Double): Int
 
-    @Query("SELECT pt.* FROM place_table AS pt JOIN TripPlace as tp ON pt.id = tp.placeId WHERE tp.tripId = :idTrip")
+    @Query("SELECT pt.* FROM place_table AS pt JOIN TripPlace as tp ON pt.id = tp.placeId WHERE tp.tripId = :idTrip ORDER BY tp.time_stamp ASC")
     fun getPlacedByIdTrip(idTrip: Int): LiveData<List<Place>>
 
     @Query("SELECT p.* FROM place_table p JOIN tripplace tp ON p.id = tp.placeId JOIN trip_table t ON t.id = tp.tripId WHERE t.startDate >= :fromDate")

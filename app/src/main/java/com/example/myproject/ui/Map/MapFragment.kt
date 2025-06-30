@@ -9,6 +9,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.location.Geocoder
+import android.os.Build
 import android.os.Bundle
 import android.os.Looper
 import android.util.Log
@@ -20,6 +21,7 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.LifecycleOwner
@@ -66,14 +68,19 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     private var polyline: Polyline? = null
     private val polylinePoints = mutableListOf<LatLng>()
     private lateinit var googleMap: GoogleMap
+    private val REQUEST_LOCATION_PERMISSIONS = 1001
+    private val REQUEST_BACKGROUND_LOCATION = 1002
+    private val REQUEST_NOTIFICATIONS = 1003
 
 
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.map_layout, container, false)
+        requestAllPermissions()
         val factory = MapViewModel.MapViewModelFactory(requireActivity().application)
         viewModel = ViewModelProvider(this, factory)[MapViewModel::class.java]
         btnStartAndStop = view.findViewById(R.id.StartAndStopButton)
@@ -91,8 +98,17 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                 if (place != null) {
                     if (viewModel.isTripRunning.value == true || isServiceRunning) {
                         viewModel.stopTrip(place)
-                        requireContext().stopService(Intent(requireContext(), TrackingService::class.java))
+                        Intent(requireContext(), TrackingService::class.java).apply {
+                            action = TrackingService.ACTION_STOP
+                        }.also { requireContext().startService(it) }
+                        //requireContext().stopService(Intent(requireContext(), TrackingService::class.java))
                         prefs.edit().putBoolean("tracking_running", false).apply()
+                        polyline?.remove()
+                        polyline = googleMap.addPolyline(
+                            PolylineOptions()
+                                .color(Color.BLUE)
+                                .width(15f)
+                                .addAll(emptyList()))
                     } else {
                         requireContext().selectTripTypeDialog { selectedType ->
                             viewModel.startTrip(place, selectedType) { startedTripId ->
@@ -101,9 +117,22 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                                     putExtra("tripId", startedTripId.toLong())
                                 }
 
-                                requireContext().stopService(Intent(requireContext(), TrackingService::class.java))
-                                requireContext().startService(intent)
-                                prefs.edit().putBoolean("tracking_running", true).apply()
+                                val stopIntent = Intent(requireContext(), TrackingService::class.java).apply {
+                                    action = TrackingService.ACTION_STOP
+                                }
+
+                                // Rimuovo il servizio se è già in esecuzione (se c'è ancora) per motivi si sicurezza
+                                requireContext().startService(stopIntent)
+
+                                //Poi START con un leggero delay per dare il tempo al Service di chiudersi
+                                view?.postDelayed({
+                                    requireContext().startService(intent)
+                                    requireContext()
+                                        .getSharedPreferences("prefs", Context.MODE_PRIVATE)
+                                        .edit()
+                                        .putBoolean("tracking_running", true)
+                                        .apply()
+                                }, 300) // 300ms
 
 
                             }
@@ -118,6 +147,13 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         //LiveData tripPlaces. Se non ci sono luoghi (places è vuoto), la polilinea viene semplicemente resettata.
         viewModel.tripPlaces.observe(viewLifecycleOwner) { places ->
             if (::googleMap.isInitialized) {
+                if (polyline == null) {
+                    polyline = googleMap.addPolyline(
+                        PolylineOptions()
+                            .color(Color.BLUE)
+                            .width(15f)
+                    )
+                }
                 polylinePoints.clear()
                 if (places.isNotEmpty()) { // se non è vuota significa che il viaggio è in corso
                     //se è vuota vuol dire che è appena iniziato e bypassareà l' if
@@ -125,7 +161,10 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                         places.map { LatLng(it.latitudine, it.longitudine) }
                     )
                 }
-                polyline?.points = polylinePoints
+                try {
+                    polyline?.points = polylinePoints
+                }catch (e: Exception) {}
+
             }
         }
 
@@ -178,11 +217,12 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                 .width(15f)
                 .addAll(polylinePoints)
         )
+
     }
 
 
 
-
+/*
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -196,7 +236,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             val mapFragment = childFragmentManager.findFragmentById(R.id.map) as? SupportMapFragment
             mapFragment?.getMapAsync(this)
         }
-    }
+    }*/
 
     private fun getCurrentPlace(callback: (Place?) -> Unit) {
         val fusedClient = LocationServices.getFusedLocationProviderClient(requireContext())
@@ -351,6 +391,97 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         })
     }
 
+    private fun requestAllPermissions() {
+        // Controllo e chiedo FINE e COARSE
+        val permissions = arrayOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+        val notGranted = permissions.filter {
+            ActivityCompat.checkSelfPermission(requireContext(), it) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (notGranted.isNotEmpty()) {
+            requestPermissions(notGranted.toTypedArray(), REQUEST_LOCATION_PERMISSIONS)
+        } else {
+            // Già concesse, passo al background
+            requestBackgroundLocation()
+        }
+    }
+
+    private fun requestBackgroundLocation() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (ActivityCompat.checkSelfPermission(
+                    requireContext(),
+                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                requestPermissions(
+                    arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION),
+                    REQUEST_BACKGROUND_LOCATION
+                )
+            } else {
+                // Già concesso
+                requestNotificationPermission()
+            }
+        } else {
+            // Versioni più vecchie non hanno il background separato
+            requestNotificationPermission()
+        }
+    }
+
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ActivityCompat.checkSelfPermission(
+                    requireContext(),
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                requestPermissions(
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    REQUEST_NOTIFICATIONS
+                )
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        when (requestCode) {
+            REQUEST_LOCATION_PERMISSIONS -> {
+                if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                    Toast.makeText(requireContext(), "Permessi posizione concessi", Toast.LENGTH_SHORT).show()
+                    requestBackgroundLocation()
+                } else {
+                    Toast.makeText(requireContext(), "Permessi posizione negati", Toast.LENGTH_LONG).show()
+                }
+            }
+
+            REQUEST_BACKGROUND_LOCATION -> {
+                if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                    Toast.makeText(requireContext(), "Permesso background concesso", Toast.LENGTH_SHORT).show()
+                    requestNotificationPermission()
+                } else {
+                    Toast.makeText(requireContext(), "Permesso background negato", Toast.LENGTH_LONG).show()
+                }
+            }
+
+            REQUEST_NOTIFICATIONS -> {
+                if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                    Toast.makeText(requireContext(), "Permesso notifiche concesso", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(requireContext(), "Permesso notifiche negato", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+
 }
 /*DEBUG VISUALIZZA LA IMAGE VIEW IN ALTO (decommentare la Image view anche nel layout)
 override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -372,6 +503,7 @@ override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) 
     }
 
     */
+
 
 
 
