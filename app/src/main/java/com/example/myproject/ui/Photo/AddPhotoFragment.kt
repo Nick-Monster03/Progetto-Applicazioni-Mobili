@@ -12,6 +12,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.myProject.R
 import com.example.myproject.ui.TripsStorical.TripRepository
 import com.example.myproject.ui.TripsStorical.TripViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
+
 
 class AddPhotoFragment : Fragment() {
 
@@ -42,7 +46,15 @@ class AddPhotoFragment : Fragment() {
         outerRecycler.adapter = adapter
 
         tripViewModel.getAllTrips().observe(viewLifecycleOwner) { trips ->
-            adapter.updateTrips(trips)
+            val coroutineScope = viewLifecycleOwner.lifecycleScope
+            coroutineScope.launch {
+                val tripsWithPhotos = trips.filter { trip ->
+                    photoViewModel.getCountPhotosByTrip(trip.id) > 0
+                }
+                withContext(Dispatchers.Main) {
+                    adapter.updateTrips(tripsWithPhotos)
+                }
+            }
         }
     }
 

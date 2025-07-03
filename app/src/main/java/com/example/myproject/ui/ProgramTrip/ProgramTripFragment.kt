@@ -16,6 +16,7 @@ import android.widget.Spinner
 import androidx.annotation.RequiresApi
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import com.example.myProject.R
 import com.example.myproject.Database.Dao.PlaceDao
 import com.example.myproject.Database.Entities.Place
@@ -25,6 +26,9 @@ import com.example.myproject.Database.Entities.TripType
 import com.example.myproject.TripPlaceRepository
 import com.example.myproject.repository.PlaceRepository
 import com.example.myproject.ui.TripsStorical.TripRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -125,7 +129,7 @@ class ProgramTripFragment : Fragment() {
         }
 
 
-        btn_send.setOnClickListener {
+        /*btn_send.setOnClickListener {
             var tripType = spinner.selectedItem.toString()
             var startDate = edit_start_date.text.toString()
             var startPlace = edit_start_place.text.toString().trim()
@@ -167,6 +171,7 @@ class ProgramTripFragment : Fragment() {
                 val geocoder = Geocoder(requireActivity())
                 val results = geocoder.getFromLocationName(startPlace, 1)
                 val resultd = geocoder.getFromLocationName(endPlace, 1)
+
                 if (!results.isNullOrEmpty() && !resultd.isNullOrEmpty()) {
                     val rawLatS = results[0].latitude
                     val rawLonS = results[0].longitude
@@ -211,7 +216,103 @@ class ProgramTripFragment : Fragment() {
                     programTripViewModel.addTripPlace(TripPlace(id_trip.toInt(), id_place_destination,time_stamp = java.time.LocalDate.now().toString()))
                 }
             }.start()
+        }*/
+        btn_send.setOnClickListener {
+            //Recupero i dati dal form
+            val tripType = spinner.selectedItem.toString()
+            var startDate = edit_start_date.text.toString()
+            var startPlace = edit_start_place.text.toString().trim()
+            var endDate = edit_end_date.text.toString()
+            var endPlace = edit_end_place.text.toString().trim()
+            val description = edit_description.text.toString()
+            //Chiamo il metodo di validazione sui vari dati e nel caso non dovvessero essere
+            //corretti sarà mostrato un messaggiop di errore in base alla casistica
+            val valid = checkVariables(tripType, startDate, startPlace, endDate, endPlace, description) {
+                    msg -> showError(msg)
+            }
+            if (!valid) return@setOnClickListener
+
+            val type = when (tripType) {
+                "JOURNEY" -> TripType.JOURNEY
+                "EXCURSION" -> TripType.EXCURSION
+                else -> TripType.LOCAL
+            }
+            if (type == TripType.LOCAL || type == TripType.EXCURSION)
+                endDate = startDate
+            if (type == TripType.LOCAL)
+                endPlace = startPlace
+
+            val trip = Trip(
+                type = type,
+                startDate = startDate,
+                start = startPlace,
+                endDate = endDate,
+                destination = endPlace,
+                description = description
+            )
+            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                try {
+                    val geocoder = Geocoder(requireContext())
+                    val results = geocoder.getFromLocationName(startPlace, 1)
+                    val resultd = geocoder.getFromLocationName(endPlace, 1)
+
+                    // Gestione errore geocoder (magari siamo offline)
+                    if (results.isNullOrEmpty() || resultd.isNullOrEmpty()) {
+                        withContext(Dispatchers.Main) {
+                            showError("Impossibile trovare le coordinate dei luoghi. Verifica connessione e nomi.")
+                        }
+                        return@launch
+                    }
+                    val rawLatS = results[0].latitude
+                    val rawLonS = results[0].longitude
+                    val rawLatD = resultd[0].latitude
+                    val rawLonD = resultd[0].longitude
+
+                    val precision = 4
+                    val latS = String.format(Locale.US, "%.${precision}f", rawLatS).toDouble()
+                    val lonS = String.format(Locale.US, "%.${precision}f", rawLonS).toDouble()
+                    val latD = String.format(Locale.US, "%.${precision}f", rawLatD).toDouble()
+                    val lonD = String.format(Locale.US, "%.${precision}f", rawLonD).toDouble()
+
+                    val place_start = Place(0, latS, lonS, startPlace)
+                    val place_destination = Place(0, latD, lonD, endPlace)
+
+                    if (!programTripViewModel.existPlace(place_start)) {
+                        programTripViewModel.addPlace(place_start)
+                    }
+                    val id_place_start = programTripViewModel.getPlace(place_start)
+
+                    if (!programTripViewModel.existPlace(place_destination)) {
+                        programTripViewModel.addPlace(place_destination)
+                    }
+                    val id_place_destination = programTripViewModel.getPlace(place_destination)
+
+                    val id_trip = programTripViewModel.addTrip(trip)
+                    programTripViewModel.addTripPlace(
+                        TripPlace(id_trip.toInt(), id_place_start, java.time.LocalDate.now().toString())
+                    )
+                    programTripViewModel.addTripPlace(
+                        TripPlace(id_trip.toInt(), id_place_destination, java.time.LocalDate.now().toString())
+                    )
+
+                    // Conferma di successo
+                    withContext(Dispatchers.Main) {
+                        AlertDialog.Builder(requireContext())
+                            .setTitle("Successo")
+                            .setMessage("Viaggio creato correttamente!")
+                            .setPositiveButton("OK", null)
+                            .show()
+                    }
+
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    withContext(Dispatchers.Main) {
+                        showError("Errore durante la creazione del viaggio.")
+                    }
+                }
+            }
         }
+
     }
 
     fun showError(message: String){

@@ -35,6 +35,7 @@ class GroupedPhotoAdapter(
         val photoAdapter = PhotoAdapter()
         holder.recycler.layoutManager = LinearLayoutManager(holder.recycler.context, LinearLayoutManager.HORIZONTAL, false)
         holder.recycler.adapter = photoAdapter
+
         /*coroutineScope.launch {
             val count = photoViewModel.getCountPhotosByTrip(trip.id)
             withContext(Dispatchers.Main) {

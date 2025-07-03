@@ -56,6 +56,10 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     private val _placeId = MutableLiveData<Int>()
     val placeId: LiveData<Int> get() = _placeId
 
+    private val _trackingRunningFlag = MutableLiveData<Boolean>() //mi aggiorna sempre se il tracking è attivo o meno o se ci sono aggiornamenti
+    val trackingRunningFlag: LiveData<Boolean> get() = _trackingRunningFlag
+
+
     val tripPlaces: LiveData<List<Place>> = _tripId.switchMap { id ->
         tripRepository.getPlacedById(id).switchMap { places ->
             if (places.isEmpty()) {
@@ -67,7 +71,17 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     }
 
 
+    fun addPlace(place: Place): Long{
+        return placeRepository.insert(place)
+    }
 
+    fun addTripPlace(tripPlace: TripPlace){
+        tripPlaceRepository.insertTripPlace(tripPlace)
+    }
+
+    fun getLastPlace(): Place?{
+        return placeRepository.getLastPLace()
+    }
 
     fun updateLocation(loc: LatLng) {
         _location.value = loc
@@ -197,7 +211,7 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         return photoRepository.existsPhoto(id_trip, image_path)
     }
 
-    private fun getCityFromCoordinates(context: Context, lat: Double, lon: Double): String? {
+    fun getCityFromCoordinates(context: Context, lat: Double, lon: Double): String? {
         val geocoder = Geocoder(context, Locale.getDefault())
         return try {
             val addresses = geocoder.getFromLocation(lat, lon, 1)
@@ -242,6 +256,11 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    //Metodo che prendendo la variabile tracking_running mi dice se il tracciamento è ancora attivo
+    fun refreshTrackingFlag(context: Context) {
+        val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+        _trackingRunningFlag.postValue(prefs.getBoolean("tracking_running", false))
+    }
 
     class MapViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {

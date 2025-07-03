@@ -39,14 +39,80 @@ class StatisticsViewModel(private val repository: TripRepository) : ViewModel() 
     }
 
     private fun loadTripsForFilter(filter: PeriodFilter) {
-        val fromDate = when (filter) {
-            PeriodFilter.LAST_1_MONTH -> LocalDate.now().minusMonths(1)
-            PeriodFilter.LAST_3_MONTHS -> LocalDate.now().minusMonths(3)
-            PeriodFilter.LAST_8_MONTHS -> LocalDate.now().minusMonths(8)
-            PeriodFilter.ALL -> null
-        }?.format(DateTimeFormatter.ISO_DATE)
+        val now = LocalDate.now()
+        /* versione precedente dove 1 mese equivale a 30 giorni e non al singolo mese specifico
+        ad esempio se siamo al 3 luglio, mentre prima filtrava fino al 3 giugno, ora fino al 30 giugno non compreso         val now = LocalDate.now()
 
-        val source = repository.getFilteredTrips(type = null, fromDate = fromDate, toDate = LocalDate.now().format(DateTimeFormatter.ISO_DATE))
+    val (fromDate, toDate) = when (filter) {
+        PeriodFilter.LAST_1_MONTH -> {
+            // Il mese corrente
+            val start = now.withDayOfMonth(1)
+            val end = now.withDayOfMonth(now.lengthOfMonth())
+            start to end
+        }
+        PeriodFilter.LAST_3_MONTHS -> {
+            // Gli ultimi 3 mesi, inizio dal primo giorno 3 mesi fa
+            val start = now.minusMonths(2).withDayOfMonth(1) // es: maggio 1 se siamo a luglio
+            val end = now.withDayOfMonth(now.lengthOfMonth()) // fine del mese corrente
+            start to end
+        }
+        PeriodFilter.LAST_8_MONTHS -> {
+            // Gli ultimi 8 mesi
+            val start = now.minusMonths(7).withDayOfMonth(1)
+            val end = now.withDayOfMonth(now.lengthOfMonth())
+            start to end
+        }
+        PeriodFilter.ALL -> {
+            null to null
+        }
+    }
+
+    val formattedFrom = fromDate?.format(DateTimeFormatter.ISO_DATE)
+    val formattedTo = toDate?.format(DateTimeFormatter.ISO_DATE)
+
+    val source = repository.getFilteredTrips(
+        type = null,
+        fromDate = formattedFrom,
+        toDate = formattedTo
+    )
+
+    filteredTrips.addSource(source) { trips ->
+        filteredTrips.value = trips
+        filteredTrips.removeSource(source)
+    }*/
+
+        val (fromDate, toDate) = when (filter) {
+            PeriodFilter.LAST_1_MONTH -> {
+                // Il mese corrente
+                val start = now.withDayOfMonth(1)
+                val end = now.withDayOfMonth(now.lengthOfMonth())
+                start to end
+            }
+            PeriodFilter.LAST_3_MONTHS -> {
+                // Gli ultimi 3 mesi, inizio dal primo giorno 3 mesi fa
+                val start = now.minusMonths(2).withDayOfMonth(1) // es: maggio 1 se siamo a luglio
+                val end = now.withDayOfMonth(now.lengthOfMonth()) // fine del mese corrente
+                start to end
+            }
+            PeriodFilter.LAST_8_MONTHS -> {
+                // Gli ultimi 8 mesi
+                val start = now.minusMonths(7).withDayOfMonth(1)
+                val end = now.withDayOfMonth(now.lengthOfMonth())
+                start to end
+            }
+            PeriodFilter.ALL -> {
+                null to null
+            }
+        }
+
+        val formattedFrom = fromDate?.format(DateTimeFormatter.ISO_DATE)
+        val formattedTo = toDate?.format(DateTimeFormatter.ISO_DATE)
+
+        val source = repository.getFilteredTrips(
+            type = null,
+            fromDate = formattedFrom,
+            toDate = formattedTo
+        )
 
         filteredTrips.addSource(source) { trips ->
             filteredTrips.value = trips

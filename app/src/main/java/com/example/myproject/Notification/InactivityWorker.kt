@@ -37,11 +37,17 @@ class InactivityWorker(appContext: Context, workerParams: WorkerParameters) : Wo
             return Result.success()
         }
 
+        //Calcoliamo quanti giorni sono passati dall' ultimo viaggio registrato
+        //nel databse
         val daysElapsed = ((Date().time - lastEndDate.time) / (1000 * 60 * 60 * 24)).toInt()
-        Log.d("WORKER", "Giorni trascorsi: $daysElapsed")
+        //Log.d("WORKER", "Giorni trascorsi: $daysElapsed")
 
-        if (daysElapsed >= 0) {
-            //Log.d("WORKER", "Invio notifica")
+        //DEBUG per inviare la notifica anche se c' è stato un viaggio a distanza di qualche minuto
+        //if (daysElapsed >= 0) {
+        //Log.d("WORKER", "Invio notifica")
+        if (daysElapsed >= 30) {
+            //Se la scadenza ha superato un mese allora mostriamo la notifica costruita
+            //Passadno il messaggio nell' input
             showNotification("Egi, è più di un mese che non fai un viaggio.")
         } else {
             Log.d("WORKER", "Viaggio troppo recente")
@@ -70,8 +76,9 @@ class InactivityWorker(appContext: Context, workerParams: WorkerParameters) : Wo
             .setContentText(message)
             .setSmallIcon(R.drawable.ic_baseline_notifications_active_24)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(false)
 
-        Log.d("WORKER", "Notifica costruita, invio...")
+        //Log.d("WORKER", "Notifica costruita, invio...")
         notificationManager.notify(1001, builder.build())
     }
 }

@@ -16,8 +16,8 @@ class PlaceRepository(app: Application) {
     }
 
 
-    fun insert(place: Place) {
-        placeDao.insert(place)
+    fun insert(place: Place):Long {
+        return placeDao.insert(place)
     }
 
     fun delete(id: Int) {
@@ -49,5 +49,9 @@ class PlaceRepository(app: Application) {
 
     fun getPlaceSinceDate(date: String): LiveData<List<Place>> {
         return placeDao.getTripsSince(date)
+    }
+
+    fun getLastPLace(): Place? {
+        return placeDao.getLastPlace()
     }
 }

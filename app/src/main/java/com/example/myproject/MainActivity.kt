@@ -78,7 +78,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
 
         // Inizializza il PeriodicWorkRequest per il controllo dell'inattività
-        val periodicRequest = PeriodicWorkRequestBuilder<InactivityWorker>(15, TimeUnit.MINUTES).build()
+        //DEBUG ogni 5 minuti val periodicRequest = PeriodicWorkRequestBuilder<InactivityWorker>(5, TimeUnit.MINUTES).build()
+        val periodicRequest = PeriodicWorkRequestBuilder<InactivityWorker>(24, TimeUnit.HOURS).build()
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "trip_inactivity_check",
             //ExistingPeriodicWorkPolicy.KEEP,

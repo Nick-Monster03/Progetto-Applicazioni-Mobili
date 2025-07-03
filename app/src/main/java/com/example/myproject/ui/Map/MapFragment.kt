@@ -31,6 +31,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.example.myProject.R
 import com.example.myproject.Database.Entities.Place
+import com.example.myproject.Database.Entities.TripPlace
 import com.example.myproject.GeofenceReceiver
 import com.example.myproject.TrackingService
 import com.example.myproject.ui.map.selectTripTypeDialog
@@ -80,6 +81,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.map_layout, container, false)
+
         requestAllPermissions()
         val factory = MapViewModel.MapViewModelFactory(requireActivity().application)
         viewModel = ViewModelProvider(this, factory)[MapViewModel::class.java]
@@ -90,10 +92,18 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         btn_add_note.visibility = View.GONE
         textView = view.findViewById(R.id.textView)
 
+        viewModel.trackingRunningFlag.observe(viewLifecycleOwner) { isRunning ->
+            btn_photo.visibility = if (isRunning) View.VISIBLE else View.GONE
+            btn_add_note.visibility = if (isRunning) View.VISIBLE else View.GONE
+            btnStartAndStop.text = if (isRunning) "Stop" else "Avvia"
+            textView.text = if (isRunning) "Interrompi Viaggio" else "Avvia il tuo Viaggio"
+        }
+
         btnStartAndStop.setOnClickListener {
             val prefs = requireContext().getSharedPreferences("prefs", Context.MODE_PRIVATE)
             val isServiceRunning = prefs.getBoolean("tracking_running", false)
-
+            // Se il tracking running è attivo (o flag true), fa solo STOP.
+            // Se il tracking running è inattivo (flag false), fa solo START.
             getCurrentPlace { place ->
                 if (place != null) {
                     if (viewModel.isTripRunning.value == true || isServiceRunning) {
@@ -115,14 +125,15 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                                 val intent = Intent(requireContext(), TrackingService::class.java).apply {
                                     action = TrackingService.ACTION_START
                                     putExtra("tripId", startedTripId.toLong())
+                                    putExtra("tripType", selectedType.name)
                                 }
 
-                                val stopIntent = Intent(requireContext(), TrackingService::class.java).apply {
+                                /*val stopIntent = Intent(requireContext(), TrackingService::class.java).apply {
                                     action = TrackingService.ACTION_STOP
                                 }
 
                                 // Rimuovo il servizio se è già in esecuzione (se c'è ancora) per motivi si sicurezza
-                                requireContext().startService(stopIntent)
+                                requireContext().startService(stopIntent)*/
 
                                 //Poi START con un leggero delay per dare il tempo al Service di chiudersi
                                 view?.postDelayed({
@@ -132,7 +143,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                                         .edit()
                                         .putBoolean("tracking_running", true)
                                         .apply()
-                                }, 300) // 300ms
+                                }, 800) // 800ms prima di poter aviare un altro viaggio per sicurezza
 
 
                             }
@@ -315,10 +326,6 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                             viewModel.getPlacesOfTrip(id_trip).observeOnce(viewLifecycleOwner) { tripPlaces ->
                                 Log.e("MapFragment", "Trip Places: $id_trip")
                                 Log.e("MapFragment", "Trip Places Size: ${tripPlaces.size}")
-                                if (tripPlaces.isNullOrEmpty()) {
-                                    Toast.makeText(requireContext(), "Nessun luogo disponibile per associare la foto", Toast.LENGTH_SHORT).show()
-                                    return@observeOnce
-                                }
 
                                 val id_place = viewModel.getClosestPlaceId(
                                     place.latitudine,
@@ -326,45 +333,39 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                                     tripPlaces
                                 )
 
-                                //Troviamo l' ID del nostro luogo attuale dato che sarà sicuramente registrato nel db
-                                /*val lat = String.format(Locale.US, "%.4f", place.latitudine).toDouble()
-                                val long = String.format(Locale.US, "%.4f", place.longitudine).toDouble()
-                                val id_place = viewModel.getPlaceIdByCordinates(lat, long)*/
-
                                 tripPlaces.forEach { tripPlace ->
-                                    Log.e("MapFragment", "TripPlace - Latitudine: ${tripPlace.latitudine}, Longitudine: ${tripPlace.longitudine}")
+                                    Log.e("MapFragment", "TripPlace - Lat: ${tripPlace.latitudine}, Lon: ${tripPlace.longitudine}")
                                 }
 
                                 Log.e("MapFragment", "ID Place: $id_place")
 
                                 if (id_place == -1) {
-                                    Toast.makeText(requireContext(), "Nessun luogo vicino trovato per questa foto", Toast.LENGTH_SHORT).show()
-                                    return@observeOnce
-                                }
-
-                                // Adesso lanciamo la Coroutine per salvare la foto
-                                viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                                    val filename = "photo_${System.currentTimeMillis()}.jpg"
-                                    val photosDir = File(requireContext().filesDir, "photos")
-                                    if (!photosDir.exists()) photosDir.mkdirs()
-
-                                    val photoFile = File(photosDir, filename)
-                                    FileOutputStream(photoFile).use {
-                                        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, it)
-                                    }
-
-                                    if(viewModel.existPhoto(id_trip, photoFile.absolutePath)) {
-                                        return@launch
-                                    }
-                                    withContext(Dispatchers.Main) {
-                                        viewModel.addPhoto(
-                                            id_place = id_place,
-                                            id_trip = id_trip,
-                                            photo_path = photoFile.absolutePath,
-                                            timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
+                                    // Nessun luogo vicino, creiamo un nuovo Place e TripPlace
+                                    Toast.makeText(requireContext(), "Nessun luogo vicino trovato. Creazione nuovo luogo...", Toast.LENGTH_SHORT).show()
+                                    viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                                        val newPlace = Place(
+                                            id = 0,
+                                            latitudine = place.latitudine,
+                                            longitudine = place.longitudine,
+                                            name = viewModel.getCityFromCoordinates(requireContext(), place.latitudine, place.longitudine) ?: "Unknown"
                                         )
-                                        Toast.makeText(requireContext(), "Foto aggiunta con successo", Toast.LENGTH_SHORT).show()
+                                        val newPlaceId = viewModel.addPlace(newPlace)
+
+                                        val newTripPlace = TripPlace(
+                                            tripId = id_trip,
+                                            placeId = newPlaceId.toInt(),
+                                            time_stamp = System.currentTimeMillis().toString()
+                                        )
+                                        viewModel.addTripPlace(newTripPlace)
+
+                                        withContext(Dispatchers.Main) {
+                                            Toast.makeText(requireContext(), "Nuovo luogo creato e associato al viaggio", Toast.LENGTH_SHORT).show()
+                                            savePhotoToPlace(newPlaceId.toInt(), id_trip, bitmap)
+                                        }
                                     }
+                                } else {
+                                    // Luogo trovato, salva direttamente la foto
+                                    savePhotoToPlace(id_place, id_trip, bitmap)
                                 }
                             }
                         } else {
@@ -377,6 +378,35 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             }
         }
     }
+
+    // Metodo per il salvataggio foto
+    private fun savePhotoToPlace(placeId: Int, tripId: Int, bitmap: Bitmap) {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val filename = "photo_${System.currentTimeMillis()}.jpg"
+            val photosDir = File(requireContext().filesDir, "photos")
+            if (!photosDir.exists()) photosDir.mkdirs()
+
+            val photoFile = File(photosDir, filename)
+            FileOutputStream(photoFile).use {
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 85, it)
+            }
+
+            if (viewModel.existPhoto(tripId, photoFile.absolutePath)) {
+                return@launch
+            }
+
+            withContext(Dispatchers.Main) {
+                viewModel.addPhoto(
+                    id_place = placeId,
+                    id_trip = tripId,
+                    photo_path = photoFile.absolutePath,
+                    timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
+                )
+                Toast.makeText(requireContext(), "Foto aggiunta con successo", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
 
     //Questa estensione mi evita ogni volta che l' observer immetta ogni volta tutti i dati
     //del LiveData tripPlaces ottenuto con viewModel.getPlacesOfTrip(id_trip)
@@ -480,6 +510,19 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             }
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.refreshTrackingFlag(requireContext())
+        val isServiceRunning = requireContext()
+            .getSharedPreferences("prefs", Context.MODE_PRIVATE)
+            .getBoolean("tracking_running", false)
+
+        if (!isServiceRunning) {
+            viewModel.setTripRunning(false, -1)
+        }
+    }
+
 
 
 }

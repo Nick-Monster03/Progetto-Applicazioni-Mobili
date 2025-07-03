@@ -14,7 +14,7 @@ interface PlaceDao {
     fun getListOfPlaces(): LiveData<List<Place>>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    fun insert(place: Place)
+    fun insert(place: Place): Long
 
     @Query("SELECT id FROM place_table WHERE latitudine = :latitudine AND longitudine = :longitudine")
     fun getPlacesByCoordinates(latitudine: Double, longitudine: Double): Int
@@ -37,4 +37,6 @@ interface PlaceDao {
     @Query("SELECT p.* FROM place_table p JOIN tripplace tp ON p.id = tp.placeId JOIN trip_table t ON t.id = tp.tripId WHERE t.startDate >= :fromDate")
     fun getTripsSince(fromDate: String): LiveData<List<Place>>
 
+    @Query("SELECT p.* FROM place_table AS p JOIN tripplace AS tp ON tp.placeId = p.id WHERE tp.time_stamp = (select max(tp1.time_stamp) from tripplace as tp1) LIMIT 1")
+    fun getLastPlace(): Place?
 }
