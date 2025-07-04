@@ -1,22 +1,17 @@
 package com.example.myproject.ui.TripsStorical
 
-import android.app.AlertDialog
-import android.content.Context
 import android.location.Location
 import android.os.Build
-import android.widget.EditText
-import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.myproject.Database.Entities.Place
 import com.example.myproject.Database.Entities.Trip
 import com.example.myproject.Database.Entities.TripType
-import com.example.myproject.NoteRepository
+import com.example.myproject.Repositories.TripRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDate

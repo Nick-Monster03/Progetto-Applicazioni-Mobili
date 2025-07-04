@@ -1,15 +1,10 @@
 package com.example.myproject
 
-import android.app.Application
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
 import android.widget.Toast
-import androidx.core.content.ContentProviderCompat.requireContext
-import com.example.myproject.ui.TripsStorical.TripRepository
-import com.google.android.gms.location.Geofence
-import com.google.android.gms.location.GeofenceStatusCodes
 import com.google.android.gms.location.GeofencingEvent
 
 //Questo è il componente che ascolta gli eventi di geofencing del sistema

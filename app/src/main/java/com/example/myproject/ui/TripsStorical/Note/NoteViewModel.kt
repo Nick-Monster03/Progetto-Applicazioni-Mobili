@@ -2,11 +2,10 @@ package com.example.myproject.ui.TripsStorical.Note
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.myproject.NoteRepository
-import com.example.myproject.repository.PlaceRepository
+import com.example.myproject.Repositories.NoteRepository
+import com.example.myproject.Repositories.PlaceRepository
 
 class NoteViewModel(application: Application, private val tripId: Int) : AndroidViewModel(application) {
 

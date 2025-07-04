@@ -7,11 +7,10 @@ import android.content.Context
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.example.myProject.R
-import com.example.myproject.ui.TripsStorical.TripRepository
+import com.example.myproject.Repositories.TripRepository
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

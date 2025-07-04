@@ -1,10 +1,9 @@
-package com.example.myproject.repository
+package com.example.myproject.Repositories
 
 import android.app.Application
 import androidx.lifecycle.LiveData
 import com.example.myproject.Database.Entities.Photo
 import com.example.myproject.Database.Dao.PhotoDao
-import com.example.myproject.Database.Dao.PlaceDao
 import com.example.myproject.Database.TravelDatabase
 
 class PhotoRepository(app: Application) {

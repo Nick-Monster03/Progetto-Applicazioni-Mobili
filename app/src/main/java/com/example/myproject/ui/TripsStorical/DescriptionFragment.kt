@@ -16,7 +16,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.myProject.R
 import com.example.myproject.ui.TripsStorical.TripAdapter
-import com.example.myproject.ui.TripsStorical.TripRepository
+import com.example.myproject.Repositories.TripRepository
 import com.example.myproject.ui.TripsStorical.TripViewModel
 import java.time.LocalDate
 

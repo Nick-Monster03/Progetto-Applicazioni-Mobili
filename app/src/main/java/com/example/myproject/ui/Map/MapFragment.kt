@@ -322,50 +322,20 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                                 return@getCurrentPlace
                             }
 
-                            // Osserviamo i dati sul Main Thread
-                            viewModel.getPlacesOfTrip(id_trip).observeOnce(viewLifecycleOwner) { tripPlaces ->
-                                Log.e("MapFragment", "Trip Places: $id_trip")
-                                Log.e("MapFragment", "Trip Places Size: ${tripPlaces.size}")
+                            // Prendi sempre l'ultimo punto registrato
+                            viewModel.getTripPlaces(id_trip).observeOnce(viewLifecycleOwner) { tripPlaces ->
+                                if (tripPlaces.isNotEmpty()) {
+                                    val orderedTripPlaces = tripPlaces.sortedBy { it.time_stamp.toLongOrNull() ?: 0L }
+                                    val lastTripPlace = orderedTripPlaces.lastOrNull()
+                                    val lastPlaceId = lastTripPlace?.placeId ?: -1
 
-                                val id_place = viewModel.getClosestPlaceId(
-                                    place.latitudine,
-                                    place.longitudine,
-                                    tripPlaces
-                                )
-
-                                tripPlaces.forEach { tripPlace ->
-                                    Log.e("MapFragment", "TripPlace - Lat: ${tripPlace.latitudine}, Lon: ${tripPlace.longitudine}")
-                                }
-
-                                Log.e("MapFragment", "ID Place: $id_place")
-
-                                if (id_place == -1) {
-                                    // Nessun luogo vicino, creiamo un nuovo Place e TripPlace
-                                    Toast.makeText(requireContext(), "Nessun luogo vicino trovato. Creazione nuovo luogo...", Toast.LENGTH_SHORT).show()
-                                    viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                                        val newPlace = Place(
-                                            id = 0,
-                                            latitudine = place.latitudine,
-                                            longitudine = place.longitudine,
-                                            name = viewModel.getCityFromCoordinates(requireContext(), place.latitudine, place.longitudine) ?: "Unknown"
-                                        )
-                                        val newPlaceId = viewModel.addPlace(newPlace)
-
-                                        val newTripPlace = TripPlace(
-                                            tripId = id_trip,
-                                            placeId = newPlaceId.toInt(),
-                                            time_stamp = System.currentTimeMillis().toString()
-                                        )
-                                        viewModel.addTripPlace(newTripPlace)
-
-                                        withContext(Dispatchers.Main) {
-                                            Toast.makeText(requireContext(), "Nuovo luogo creato e associato al viaggio", Toast.LENGTH_SHORT).show()
-                                            savePhotoToPlace(newPlaceId.toInt(), id_trip, bitmap)
-                                        }
+                                    if (lastPlaceId != -1) {
+                                        savePhotoToPlace(lastPlaceId, id_trip, bitmap)
+                                    } else {
+                                        Toast.makeText(requireContext(), "Nessun punto valido trovato per associare la foto", Toast.LENGTH_SHORT).show()
                                     }
                                 } else {
-                                    // Luogo trovato, salva direttamente la foto
-                                    savePhotoToPlace(id_place, id_trip, bitmap)
+                                    Toast.makeText(requireContext(), "Nessun punto registrato ancora. Attendi un momento e riprova.", Toast.LENGTH_SHORT).show()
                                 }
                             }
                         } else {

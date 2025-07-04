@@ -4,7 +4,6 @@ import android.app.AlertDialog
 import android.location.Geocoder
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -18,14 +17,13 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.example.myProject.R
-import com.example.myproject.Database.Dao.PlaceDao
 import com.example.myproject.Database.Entities.Place
 import com.example.myproject.Database.Entities.Trip
 import com.example.myproject.Database.Entities.TripPlace
 import com.example.myproject.Database.Entities.TripType
-import com.example.myproject.TripPlaceRepository
-import com.example.myproject.repository.PlaceRepository
-import com.example.myproject.ui.TripsStorical.TripRepository
+import com.example.myproject.Repositories.TripPlaceRepository
+import com.example.myproject.Repositories.PlaceRepository
+import com.example.myproject.Repositories.TripRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

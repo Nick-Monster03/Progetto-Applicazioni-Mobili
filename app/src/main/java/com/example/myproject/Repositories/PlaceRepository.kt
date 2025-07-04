@@ -1,4 +1,4 @@
-package com.example.myproject.repository
+package com.example.myproject.Repositories
 
 import android.app.Application
 import androidx.lifecycle.LiveData

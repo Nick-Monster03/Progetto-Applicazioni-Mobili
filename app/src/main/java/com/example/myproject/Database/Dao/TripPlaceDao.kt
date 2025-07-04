@@ -18,6 +18,10 @@ interface TripPlaceDao {
     @Query("DELETE FROM TripPlace WHERE tripId = :tripId AND placeId = :placeId")
     fun delete(tripId: Int, placeId: Int)
 
+    @Query("SELECT * FROM TripPlace WHERE tripId = :tripId ORDER BY time_stamp ASC")
+    fun getTripPlacesForTrip(tripId: Int): LiveData<List<TripPlace>>
+
+
     @Query("DELETE FROM TripPlace WHERE tripId = :tripId")
     fun delete(tripId: Int)
 }

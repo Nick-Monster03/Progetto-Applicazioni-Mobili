@@ -1,4 +1,4 @@
-package com.example.myproject
+package com.example.myproject.Repositories
 
 import android.app.Application
 import androidx.lifecycle.LiveData
@@ -29,5 +29,10 @@ class TripPlaceRepository(app:Application) {
 
     fun deleteTripPlacesByTripId(tripId: Int) {
         tripPlaceDao.delete(tripId)
+    }
+
+    fun getTripPlacesForTrip(tripId: Int): LiveData<List<TripPlace>>
+    {
+        return tripPlaceDao.getTripPlacesForTrip(tripId)
     }
 }

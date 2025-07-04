@@ -12,20 +12,17 @@ import android.location.Location
 import com.google.android.gms.location.LocationRequest
 import android.os.Build
 import android.os.Looper
-import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
-import androidx.core.app.ServiceCompat.startForeground
-import androidx.core.app.ServiceCompat.stopForeground
-import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.lifecycle.LifecycleService
 import com.example.myProject.R
 import com.example.myproject.Database.Entities.Place
 import com.example.myproject.Database.Entities.TripPlace
 import com.example.myproject.Database.Entities.TripType
-import com.example.myproject.repository.PlaceRepository
-import com.example.myproject.ui.TripsStorical.TripRepository
+import com.example.myproject.Repositories.PlaceRepository
+import com.example.myproject.Repositories.TripPlaceRepository
+import com.example.myproject.Repositories.TripRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
@@ -100,27 +97,18 @@ class TrackingService : LifecycleService() {
         override fun onLocationResult(result: LocationResult) {
             if (!isTracking) return
             result.locations.forEach { location ->
-                // 1) Filtra accuratezza scarsa
+                // Filtriamo i punti di accuratezza scarsa
                 if (location.accuracy > 25f) {
                     //Log.w("TrackingService", "Ignorato punto con accuratezza scarsa (${location.accuracy}m)")
                     return@forEach
                 }
 
-                // 2) Se abbiamo un punto precedente, controlla la distanza massima
-                if (lastLocation != null) {
-                    val distance = lastLocation!!.distanceTo(location)
-                    /*if (distance > 500f) {
-                       // Log.w("TrackingService", "Ignorato punto troppo distante dal precedente (${distance}m)")
-                        //Toast.makeText(requireContext(application), "Punto ignoRATO PERCHè TROPPO DISTANTE")
-                        return@forEach
-                    }*/
-
-                    // Aggiorna lastLocation solo se il punto è valido
-                    lastLocation = location
-
-                } else {
-                    // Se è il primo punto, accettalo e imposta lastLocation
-                    lastLocation = location
+                //Filtro vecchiaia (>60 sec) così da evitare che il servizio gps non trovando punti al momento
+                //della geolocalizzasizone prenda dei vecchi punti in cache
+                val ageMillis = System.currentTimeMillis() - location.time
+                if (ageMillis > 60_000L) {
+                    // Log.w("TrackingService", "Ignorato punto vecchio di ${ageMillis/1000} sec")
+                    return@forEach
                 }
 
                 // 3) Prosegui a salvare la posizione
@@ -148,27 +136,36 @@ class TrackingService : LifecycleService() {
     private fun startLocationUpdates() {
         isTracking = true
 
-        val request = LocationRequest.create().apply {
-            /*LOCAL è un viaggio breve in città quindi serve una localizzazione frequente in una piccola area
-            EXCURSION	È un viaggio giornaliero, voglio quindi un tracking meno frequente, ma a spostamenti maggiori
-            JOURNEY	È un viaggio lungo, quindi tracking ancora  meno frequente e frequenza ancora maggione.*/
-            if (tripType == TripType.LOCAL) {
-                interval = 5_000L             // ogni 5 sec
-                fastestInterval = 3_000L      // min 3 sec
-                smallestDisplacement = 5f     // 5 metri
-                priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-            } else if (tripType == TripType.EXCURSION) {
-                interval = 20_000L            // ogni 20 sec
-                fastestInterval = 10_000L     // min 10 sec
-                smallestDisplacement = 20f    // 20 metri
-                priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-            } else if (tripType == TripType.JOURNEY) {
-                interval = 60_000L            // ogni 60 sec
-                fastestInterval = 30_000L     // min 30 sec
-                smallestDisplacement = 50f    // 50 metri
-                priority = LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY
+        val request = when (tripType) {
+            TripType.EXCURSION -> {
+                LocationRequest.Builder(
+                    Priority.PRIORITY_HIGH_ACCURACY,
+                    30_000L // intervallo preferito 30 sec
+                ).apply {
+                    setMinUpdateIntervalMillis(15_000L) // minimo 15 sec
+                    setMinUpdateDistanceMeters(50f)     // min distanza 50 m
+                }.build()
+            }
+            TripType.JOURNEY -> {
+                LocationRequest.Builder(
+                    Priority.PRIORITY_HIGH_ACCURACY,
+                    60_000L // intervallo preferito 60 sec
+                ).apply {
+                    setMinUpdateIntervalMillis(30_000L) // minimo 30 sec
+                    setMinUpdateDistanceMeters(150f)    // min distanza 150 m
+                }.build()
+            }
+            else -> { // TripType.LOCAL o default
+                LocationRequest.Builder(
+                    Priority.PRIORITY_HIGH_ACCURACY,
+                    20_000L // intervallo preferito 20 sec
+                ).apply {
+                    setMinUpdateIntervalMillis(10_000L) // minimo 10 sec
+                    setMinUpdateDistanceMeters(25f)     // min distanza 25 m
+                }.build()
             }
         }
+
         //Come funziuona la richiesta:
         //È passato almeno fastestInterval dal precedente aggiornamento.
         //Il dispositivo si è spostato almeno di smallestDisplacement metri dal precedente aggiornamento.

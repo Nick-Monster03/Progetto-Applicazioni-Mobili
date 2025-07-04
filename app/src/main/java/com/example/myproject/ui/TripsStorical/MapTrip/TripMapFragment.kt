@@ -13,7 +13,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import com.example.myProject.R
-import com.example.myproject.ui.TripsStorical.TripRepository
+import com.example.myproject.Repositories.TripRepository
 import com.example.myproject.ui.TripsStorical.TripViewModel
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.OnMapReadyCallback

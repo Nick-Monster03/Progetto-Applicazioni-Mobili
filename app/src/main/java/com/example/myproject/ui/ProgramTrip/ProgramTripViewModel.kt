@@ -5,12 +5,13 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.myproject.Database.Entities.Place
 import com.example.myproject.Database.Entities.Trip
 import com.example.myproject.Database.Entities.TripPlace
-import com.example.myproject.TripPlaceRepository
-import com.example.myproject.repository.PlaceRepository
-import com.example.myproject.ui.TripsStorical.TripRepository
+import com.example.myproject.Repositories.TripPlaceRepository
+import com.example.myproject.Repositories.PlaceRepository
+import com.example.myproject.Repositories.TripRepository
 
 class ProgramTripViewModel(private val trip_repository: TripRepository, private val place_repository: PlaceRepository,
-                            private val trip_place_repository: TripPlaceRepository) : ViewModel(){
+                           private val trip_place_repository: TripPlaceRepository
+) : ViewModel(){
 
 
     fun addTrip(trip: Trip): Long {

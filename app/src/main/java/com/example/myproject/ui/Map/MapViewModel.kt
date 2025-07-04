@@ -5,7 +5,6 @@ import android.app.Application
 import android.content.Context
 import android.location.Geocoder
 import android.os.Build
-import android.util.Log
 import android.widget.EditText
 import android.widget.Toast
 import androidx.annotation.RequiresApi
@@ -23,12 +22,11 @@ import com.example.myproject.Database.Entities.Place
 import com.example.myproject.Database.Entities.Trip
 import com.example.myproject.Database.Entities.TripPlace
 import com.example.myproject.Database.Entities.TripType
-import com.example.myproject.NoteRepository
-import com.example.myproject.TripPlaceRepository
-import com.example.myproject.repository.PhotoRepository
-import com.example.myproject.repository.PlaceRepository
-import com.example.myproject.ui.TripsStorical.TripRepository
-import com.example.myproject.ui.TripsStorical.TripViewModel
+import com.example.myproject.Repositories.NoteRepository
+import com.example.myproject.Repositories.TripPlaceRepository
+import com.example.myproject.Repositories.PhotoRepository
+import com.example.myproject.Repositories.PlaceRepository
+import com.example.myproject.Repositories.TripRepository
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -137,6 +135,11 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     fun getPlaceIdByCordinates(lat: Double, lng: Double): Int {
         return placeRepository.getPlaceByCordinates(latitudine = lat, longitudine = lng)
     }
+
+    fun getTripPlaces(tripId: Int): LiveData<List<TripPlace>> {
+        return tripPlaceRepository.getTripPlacesForTrip(tripId)
+    }
+
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun saveTripPoint(latitude: Double, longitude: Double) {

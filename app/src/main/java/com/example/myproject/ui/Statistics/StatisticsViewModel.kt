@@ -1,9 +1,7 @@
 package com.example.myproject.ui.Statistics
 
-import android.app.Application
 import android.location.Location
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
@@ -13,9 +11,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.myproject.Database.Entities.Place
 import com.example.myproject.Database.Entities.Trip
-import com.example.myproject.ui.TripsStorical.TripRepository
+import com.example.myproject.Repositories.TripRepository
 import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.heatmaps.WeightedLatLng
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
