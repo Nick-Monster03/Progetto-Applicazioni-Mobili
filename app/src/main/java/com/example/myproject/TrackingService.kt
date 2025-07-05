@@ -127,7 +127,7 @@ class TrackingService : LifecycleService() {
 
                     placeRepo.insert(place)
                     val placeId = placeRepo.getPlaceByCordinates(place.latitudine, place.longitudine)
-                    tripPlaceRepo.insertTripPlace(TripPlace(tripId = tripId.toInt(), placeId = placeId, time_stamp = java.time.LocalDate.now().toString()))
+                    tripPlaceRepo.insertTripPlace(TripPlace(tripId = tripId.toInt(), placeId = placeId, time_stamp = java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(java.time.LocalDateTime.now()).toString()))
                 }
             }
         }

@@ -23,6 +23,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
@@ -74,15 +75,24 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     private val REQUEST_NOTIFICATIONS = 1003
 
 
-
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.map_layout, container, false)
-
-        requestAllPermissions()
+        if (ActivityCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            Toast.makeText(
+                requireContext(),
+                "Permessi posizione mancanti, abilitali nelle impostazioni.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+        //requestAllPermissions()
         val factory = MapViewModel.MapViewModelFactory(requireActivity().application)
         viewModel = ViewModelProvider(this, factory)[MapViewModel::class.java]
         btnStartAndStop = view.findViewById(R.id.StartAndStopButton)
@@ -118,15 +128,17 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                             PolylineOptions()
                                 .color(Color.BLUE)
                                 .width(15f)
-                                .addAll(emptyList()))
+                                .addAll(emptyList())
+                        )
                     } else {
                         requireContext().selectTripTypeDialog { selectedType ->
                             viewModel.startTrip(place, selectedType) { startedTripId ->
-                                val intent = Intent(requireContext(), TrackingService::class.java).apply {
-                                    action = TrackingService.ACTION_START
-                                    putExtra("tripId", startedTripId.toLong())
-                                    putExtra("tripType", selectedType.name)
-                                }
+                                val intent =
+                                    Intent(requireContext(), TrackingService::class.java).apply {
+                                        action = TrackingService.ACTION_START
+                                        putExtra("tripId", startedTripId.toLong())
+                                        putExtra("tripType", selectedType.name)
+                                    }
 
                                 /*val stopIntent = Intent(requireContext(), TrackingService::class.java).apply {
                                     action = TrackingService.ACTION_STOP
@@ -136,21 +148,28 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                                 requireContext().startService(stopIntent)*/
 
                                 //Poi START con un leggero delay per dare il tempo al Service di chiudersi
-                                view?.postDelayed({
-                                    requireContext().startService(intent)
-                                    requireContext()
-                                        .getSharedPreferences("prefs", Context.MODE_PRIVATE)
-                                        .edit()
-                                        .putBoolean("tracking_running", true)
-                                        .apply()
-                                }, 800) // 800ms prima di poter aviare un altro viaggio per sicurezza
+                                view?.postDelayed(
+                                    {
+                                        ContextCompat.startForegroundService(requireContext(), intent)
+                                        requireContext()
+                                            .getSharedPreferences("prefs", Context.MODE_PRIVATE)
+                                            .edit()
+                                            .putBoolean("tracking_running", true)
+                                            .apply()
+                                    },
+                                    800
+                                ) // 800ms prima di poter aviare un altro viaggio per sicurezza
 
 
                             }
                         }
                     }
                 } else {
-                    Toast.makeText(requireContext(), "Posizione non disponibile", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        requireContext(),
+                        "Posizione non disponibile",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
         }
@@ -171,11 +190,9 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                     polylinePoints.addAll(
                         places.map { LatLng(it.latitudine, it.longitudine) }
                     )
-                }
-                try {
-                    polyline?.points = polylinePoints
-                }catch (e: Exception) {}
 
+                }
+                polyline?.points = polylinePoints
             }
         }
 
@@ -208,7 +225,11 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         val mapFragment = childFragmentManager.findFragmentById(R.id.map) as? SupportMapFragment
         mapFragment?.getMapAsync(this)
         val fusedClient = LocationServices.getFusedLocationProviderClient(requireContext())
-        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
             fusedClient.lastLocation.addOnSuccessListener { location ->
                 if (location != null) {
                     viewModel.updateLocation(LatLng(location.latitude, location.longitude))
@@ -231,24 +252,6 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
     }
 
-
-
-/*
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 1001 &&
-            grantResults.isNotEmpty() &&
-            grantResults.all { it == PackageManager.PERMISSION_GRANTED }
-        ) {
-            val mapFragment = childFragmentManager.findFragmentById(R.id.map) as? SupportMapFragment
-            mapFragment?.getMapAsync(this)
-        }
-    }*/
-
     private fun getCurrentPlace(callback: (Place?) -> Unit) {
         val fusedClient = LocationServices.getFusedLocationProviderClient(requireContext())
 
@@ -257,7 +260,8 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            Toast.makeText(requireContext(), "Permessi posizione non concessi", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Permessi posizione non concessi", Toast.LENGTH_SHORT)
+                .show()
             callback(null)
             return
         }
@@ -278,32 +282,29 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                     Place(
                         id = 0,
                         latitudine = String.format(Locale.US, "%.4f", location.latitude).toDouble(),
-                        longitudine = String.format(Locale.US, "%.4f", location.longitude).toDouble(),
+                        longitudine = String.format(Locale.US, "%.4f", location.longitude)
+                            .toDouble(),
                         name = cityName
                     )
                 )
             } else {
-                Toast.makeText(requireContext(), "Impossibile ottenere la posizione attuale", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    requireContext(),
+                    "Impossibile ottenere la posizione attuale",
+                    Toast.LENGTH_SHORT
+                ).show()
                 callback(null)
             }
         }.addOnFailureListener {
-            Toast.makeText(requireContext(), "Errore nell'ottenere la posizione", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                requireContext(),
+                "Errore nell'ottenere la posizione",
+                Toast.LENGTH_SHORT
+            ).show()
             callback(null)
         }
     }
 
-    private fun getCityFromCoordinates(context: Context, lat: Double, lon: Double): String? {
-        val geocoder = Geocoder(context, Locale.getDefault())
-        return try {
-            val addresses = geocoder.getFromLocation(lat, lon, 1)
-            if (!addresses.isNullOrEmpty()) {
-                addresses[0].locality ?: addresses[0].subAdminArea ?: addresses[0].adminArea
-            } else null
-        } catch (e: IOException) {
-            e.printStackTrace()
-            null
-        }
-    }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
@@ -318,31 +319,54 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                         if (viewModel.isTripRunning.value == true) {
                             val id_trip = viewModel.tripId.value
                             if (id_trip == null) {
-                                Toast.makeText(requireContext(), "ID del viaggio non disponibile", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    requireContext(),
+                                    "ID del viaggio non disponibile",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                                 return@getCurrentPlace
                             }
 
                             // Prendi sempre l'ultimo punto registrato
-                            viewModel.getTripPlaces(id_trip).observeOnce(viewLifecycleOwner) { tripPlaces ->
-                                if (tripPlaces.isNotEmpty()) {
-                                    val orderedTripPlaces = tripPlaces.sortedBy { it.time_stamp.toLongOrNull() ?: 0L }
-                                    val lastTripPlace = orderedTripPlaces.lastOrNull()
-                                    val lastPlaceId = lastTripPlace?.placeId ?: -1
+                            viewModel.getTripPlaces(id_trip)
+                                .observeOnce(viewLifecycleOwner) { tripPlaces ->
+                                    if (tripPlaces.isNotEmpty()) {
+                                        val orderedTripPlaces = tripPlaces.sortedBy {
+                                            it.time_stamp.toLongOrNull() ?: 0L
+                                        }
+                                        val lastTripPlace = orderedTripPlaces.lastOrNull()
+                                        val lastPlaceId = lastTripPlace?.placeId ?: -1
 
-                                    if (lastPlaceId != -1) {
-                                        savePhotoToPlace(lastPlaceId, id_trip, bitmap)
+                                        if (lastPlaceId != -1) {
+                                            savePhotoToPlace(lastPlaceId, id_trip, bitmap)
+                                        } else {
+                                            Toast.makeText(
+                                                requireContext(),
+                                                "Nessun punto valido trovato per associare la foto",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
                                     } else {
-                                        Toast.makeText(requireContext(), "Nessun punto valido trovato per associare la foto", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(
+                                            requireContext(),
+                                            "Nessun punto registrato ancora. Attendi un momento e riprova.",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
-                                } else {
-                                    Toast.makeText(requireContext(), "Nessun punto registrato ancora. Attendi un momento e riprova.", Toast.LENGTH_SHORT).show()
                                 }
-                            }
                         } else {
-                            Toast.makeText(requireContext(), "Avvia un viaggio per aggiungere foto", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                requireContext(),
+                                "Avvia un viaggio per aggiungere foto",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     } else {
-                        Toast.makeText(requireContext(), "Posizione non disponibile", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            requireContext(),
+                            "Posizione non disponibile",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 }
             }
@@ -370,9 +394,12 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                     id_place = placeId,
                     id_trip = tripId,
                     photo_path = photoFile.absolutePath,
-                    timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
+                    timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(
+                        Date()
+                    )
                 )
-                Toast.makeText(requireContext(), "Foto aggiunta con successo", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Foto aggiunta con successo", Toast.LENGTH_SHORT)
+                    .show()
             }
         }
     }
@@ -391,6 +418,24 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         })
     }
 
+    override fun onResume() {
+        super.onResume()
+        viewModel.refreshTrackingFlag(requireContext())
+        val isServiceRunning = requireContext()
+            .getSharedPreferences("prefs", Context.MODE_PRIVATE)
+            .getBoolean("tracking_running", false)
+
+        if (!isServiceRunning) {
+            viewModel.setTripRunning(false, -1)
+        }
+    }
+}
+
+
+
+
+/*SPOSTATI NEL MAIN ACTIVITY
+    //Metodi per ottenere tutti i permessi rischiesti per il corretto funzionamento dell' applicazione
     private fun requestAllPermissions() {
         // Controllo e chiedo FINE e COARSE
         val permissions = arrayOf(
@@ -480,22 +525,12 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             }
         }
     }
-
-    override fun onResume() {
-        super.onResume()
-        viewModel.refreshTrackingFlag(requireContext())
-        val isServiceRunning = requireContext()
-            .getSharedPreferences("prefs", Context.MODE_PRIVATE)
-            .getBoolean("tracking_running", false)
-
-        if (!isServiceRunning) {
-            viewModel.setTripRunning(false, -1)
-        }
-    }
+*/
 
 
 
-}
+
+
 /*DEBUG VISUALIZZA LA IMAGE VIEW IN ALTO (decommentare la Image view anche nel layout)
 override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
     super.onActivityResult(requestCode, resultCode, data)

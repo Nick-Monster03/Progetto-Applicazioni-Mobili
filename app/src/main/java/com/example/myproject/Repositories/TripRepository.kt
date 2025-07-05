@@ -70,6 +70,10 @@ class TripRepository(app: Application) {
         return tripDao.getTripsSince(fromDate)
     }
 
+    fun getFirstTripStartingToday(today: String): Trip? {
+        return tripDao.getFirstTripStartingToday(today)
+    }
+
     fun getAllEndedTrips(): LiveData<List<Trip>> {
         return tripDao.getAllEndedTrips()
     }

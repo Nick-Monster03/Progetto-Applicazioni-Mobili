@@ -32,13 +32,17 @@ interface TripDao {
     @Query("UPDATE trip_table SET description = :description WHERE id= :id")
     fun addDescription(id: Int, description: String)
 
-    @Query("SELECT id FROM trip_table WHERE (type = 'NO_PROGRAM' AND (destination IS NULL OR destination = '')) OR (date(startDate) <= date('now') AND date(endDate) >= date('now')) ORDER BY id DESC LIMIT 1")
+    @Query("SELECT id FROM trip_table WHERE ((destination IS NULL OR destination = '')) OR (date(startDate) <= date('now') AND date(endDate) >= date('now')) ORDER BY id DESC LIMIT 1")
     fun getCurrentTripId(): Int?
 
-    @Query("SELECT count(*) FROM trip_table WHERE (type = 'NO_PROGRAM' AND (destination IS NULL OR destination = '')) OR (date(startDate) <= date('now') AND date(endDate) >= date('now')) ORDER BY id DESC LIMIT 1")
+    @Query("SELECT count(*) FROM trip_table WHERE ((destination IS NULL OR destination = '')) OR (date(startDate) <= date('now') AND date(endDate) >= date('now')) ORDER BY id DESC LIMIT 1")
     fun getNumberCurrentTrip(): Int
+
     @Query("SELECT * FROM trip_table WHERE (:type IS NULL OR type = :type) AND (:fromDate IS NULL OR :fromDate = '' OR date(startDate) >= date(:fromDate)) AND (:toDate IS NULL OR :toDate = '' OR (endDate IS NOT NULL AND date(endDate) <= date(:toDate))) AND endDate IS NOT NULL\n")
     fun getFilteredTrips(type: TripType?, fromDate: String?, toDate: String?): LiveData<List<Trip>>
+
+    @Query("SELECT * FROM trip_table WHERE date(startDate) = date(:today) LIMIT 1")
+    fun getFirstTripStartingToday(today: String): Trip?
 
     @Query("SELECT pt.* FROM trip_table as t JOIN tripplace as tp ON t.id = tp.tripId JOIN place_table as pt ON pt.id = tp.placeId WHERE t.id = :tripId ORDER BY tp.time_stamp ASC")
     fun getPlacesForTrip(tripId: Int): LiveData<List<Place>>

@@ -54,8 +54,6 @@ class TripViewModel(private val repository: TripRepository) : ViewModel() {
         var type: TripType? = null
         if(tipo == "EXCURSION")
             type = TripType.EXCURSION
-        else if(tipo == "NO_PROGRAM")
-            type = TripType.NO_PROGRAM
         else if(tipo == "JOURNEY")
             type = TripType.JOURNEY
         else if(tipo == "LOCAL")

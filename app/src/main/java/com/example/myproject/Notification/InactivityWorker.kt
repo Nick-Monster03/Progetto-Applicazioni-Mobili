@@ -37,7 +37,7 @@ class InactivityWorker(appContext: Context, workerParams: WorkerParameters) : Wo
         }
 
         //Calcoliamo quanti giorni sono passati dall' ultimo viaggio registrato
-        //nel databse
+        //nel database
         val daysElapsed = ((Date().time - lastEndDate.time) / (1000 * 60 * 60 * 24)).toInt()
         //Log.d("WORKER", "Giorni trascorsi: $daysElapsed")
 
@@ -47,7 +47,7 @@ class InactivityWorker(appContext: Context, workerParams: WorkerParameters) : Wo
         if (daysElapsed >= 30) {
             //Se la scadenza ha superato un mese allora mostriamo la notifica costruita
             //Passadno il messaggio nell' input
-            showNotification("Egi, è più di un mese che non fai un viaggio.")
+            showNotification("Ehi, è più di un mese che non fai un viaggio.")
         } else {
             Log.d("WORKER", "Viaggio troppo recente")
         }
@@ -73,6 +73,7 @@ class InactivityWorker(appContext: Context, workerParams: WorkerParameters) : Wo
         val builder = NotificationCompat.Builder(applicationContext, channelId)
             .setContentTitle("Travel Companion")
             .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setSmallIcon(R.drawable.ic_baseline_notifications_active_24)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(false)

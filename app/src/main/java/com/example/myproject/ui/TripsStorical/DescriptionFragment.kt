@@ -41,8 +41,8 @@ class DescriptionFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         spinnerTipo = view.findViewById(R.id.spinner_trip_type)
-        val tipiViaggio = listOf("ALL", "LOCAL", "EXCURSION", "JOURNEY", "NO_PROGRAM")
-        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, listOf("ALL", "LOCAL", "EXCURSION", "JOURNEY", "NO_PROGRAM"))
+        val tipiViaggio = listOf("ALL", "LOCAL", "EXCURSION", "JOURNEY")
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, listOf("ALL", "LOCAL", "EXCURSION", "JOURNEY"))
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spinnerTipo = view.findViewById(R.id.spinner_trip_type)
         spinnerTipo.adapter = adapter

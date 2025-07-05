@@ -10,8 +10,8 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 @Database(
-    entities = [Trip::class, Place::class, Photo::class, TripPlace::class, Note::class],
-    version = 5,
+    entities = [Trip::class, Place::class, Photo::class, TripPlace::class, Note::class, TripPlan::class],
+    version = 6,
     exportSchema = false
 )
 abstract class TravelDatabase : RoomDatabase() {
@@ -21,6 +21,7 @@ abstract class TravelDatabase : RoomDatabase() {
     abstract fun photoDao(): PhotoDao
     abstract fun tripPlaceDao(): TripPlaceDao
     abstract fun noteDao(): NoteDao
+    abstract fun tripPlanDao(): TripPlanDao
 
     companion object {
         @Volatile
@@ -65,6 +66,22 @@ abstract class TravelDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+            CREATE TABLE IF NOT EXISTS trip_plan_table (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                startDate TEXT NOT NULL,
+                endDate TEXT NOT NULL,
+                startPlace TEXT,
+                endPlace TEXT NOT NULL,
+                description TEXT,
+                type TEXT NOT NULL
+            )
+        """.trimIndent())
+            }
+        }
+
 
         private val sRoomDatabaseCallback = object : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
@@ -82,7 +99,7 @@ abstract class TravelDatabase : RoomDatabase() {
                     TravelDatabase::class.java,
                     "travel_database"
                 )
-                    .fallbackToDestructiveMigration()
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_4_5, MIGRATION_5_6)
                     .build()
                 INSTANCE = instance
                 instance

@@ -59,13 +59,7 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
 
 
     val tripPlaces: LiveData<List<Place>> = _tripId.switchMap { id ->
-        tripRepository.getPlacedById(id).switchMap { places ->
-            if (places.isEmpty()) {
-                MutableLiveData(emptyList())
-            } else {
-                MutableLiveData(places)
-            }
-        }
+        placeRepository.getPlacedByIdTrip(id)
     }
 
 
@@ -94,7 +88,7 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
             placeRepository.insert(place)
             val pId = placeRepository.getPlaceId(place)
             val tId = tripRepository.insertTrip(trip).toInt()
-            tripPlaceRepository.insertTripPlace(TripPlace(tripId = tId, placeId = pId, time_stamp = java.time.LocalDate.now().toString()))
+            tripPlaceRepository.insertTripPlace(TripPlace(tripId = tId, placeId = pId, time_stamp = java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(java.time.LocalDateTime.now())))
 
             _tripId.postValue(tId)
             _placeId.postValue(pId)
@@ -113,7 +107,7 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
             val pId = placeRepository.getPlaceId(place)
             val tId = _tripId.value ?: return@launch
             tripRepository.updateTrip(tId, place.name, todayDate)
-            tripPlaceRepository.insertTripPlace(TripPlace(tripId = tId, placeId = pId, time_stamp = java.time.LocalDate.now().toString()))
+            tripPlaceRepository.insertTripPlace(TripPlace(tripId = tId, placeId = pId, time_stamp = java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(java.time.LocalDateTime.now())))
             _isTripRunning.postValue(false)
             _tripId.postValue(-1)
         }
@@ -155,7 +149,7 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
             val tId = _tripId.value ?: return
 
             tripPlaceRepository.insertTripPlace(
-                TripPlace(tripId = tId, placeId = pId, time_stamp = java.time.LocalDate.now().toString())
+                TripPlace(tripId = tId, placeId = pId, time_stamp = java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(java.time.LocalDateTime.now()).toString())
             )
             _placeId.postValue(pId)
         }

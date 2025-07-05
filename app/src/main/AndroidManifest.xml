@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
     <application
         android:allowBackup="true"
@@ -44,6 +46,10 @@
 
 
         <receiver android:name="com.example.myproject.GeofenceReceiver" android:exported="true"/>
+        <receiver
+            android:name="com.example.myproject.Notification.TransictionReceiver"
+            android:exported="true" />
+
     </application>
 
 </manifest>
