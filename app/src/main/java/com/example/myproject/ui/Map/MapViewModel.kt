@@ -1,13 +1,16 @@
 package com.example.myproject.ui.map
 
+import android.Manifest
 import android.app.AlertDialog
 import android.app.Application
 import android.content.Context
+import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.os.Build
 import android.widget.EditText
 import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.core.app.ActivityCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -27,6 +30,7 @@ import com.example.myproject.Repositories.TripPlaceRepository
 import com.example.myproject.Repositories.PhotoRepository
 import com.example.myproject.Repositories.PlaceRepository
 import com.example.myproject.Repositories.TripRepository
+import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -60,19 +64,6 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
 
     val tripPlaces: LiveData<List<Place>> = _tripId.switchMap { id ->
         placeRepository.getPlacedByIdTrip(id)
-    }
-
-
-    fun addPlace(place: Place): Long{
-        return placeRepository.insert(place)
-    }
-
-    fun addTripPlace(tripPlace: TripPlace){
-        tripPlaceRepository.insertTripPlace(tripPlace)
-    }
-
-    fun getLastPlace(): Place?{
-        return placeRepository.getLastPLace()
     }
 
     fun updateLocation(loc: LatLng) {
@@ -126,33 +117,8 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
 
     }
 
-    fun getPlaceIdByCordinates(lat: Double, lng: Double): Int {
-        return placeRepository.getPlaceByCordinates(latitudine = lat, longitudine = lng)
-    }
-
     fun getTripPlaces(tripId: Int): LiveData<List<TripPlace>> {
         return tripPlaceRepository.getTripPlacesForTrip(tripId)
-    }
-
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun saveTripPoint(latitude: Double, longitude: Double) {
-        if (isTripRunning.value == true) {
-            val place = Place(
-                id = 0,
-                latitudine = String.format(Locale.US, "%.4f", latitude).toDouble(),
-                longitudine = String.format(Locale.US, "%.4f", longitude).toDouble(),
-                name = getCityFromCoordinates(application, latitude, longitude) ?: "Unknown Place"
-            )
-            placeRepository.insert(place)
-            val pId = placeRepository.getPlaceByCordinates(place.latitudine, place.longitudine)
-            val tId = _tripId.value ?: return
-
-            tripPlaceRepository.insertTripPlace(
-                TripPlace(tripId = tId, placeId = pId, time_stamp = java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(java.time.LocalDateTime.now()).toString())
-            )
-            _placeId.postValue(pId)
-        }
     }
 
     fun showNoteDialog(context: Context) {
@@ -189,7 +155,6 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         builder.setNegativeButton("Annulla") { dialog, _ ->
             dialog.cancel()
         }
-
         // Mostra il dialog
         builder.create().show()
     }
@@ -208,55 +173,63 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         return photoRepository.existsPhoto(id_trip, image_path)
     }
 
-    fun getCityFromCoordinates(context: Context, lat: Double, lon: Double): String? {
-        val geocoder = Geocoder(context, Locale.getDefault())
-        return try {
-            val addresses = geocoder.getFromLocation(lat, lon, 1)
-            val name = addresses?.firstOrNull()?.let {
-                it.locality ?: it.subAdminArea ?: it.adminArea ?: "Sconosciuto"
-            } ?: "Sconosciuto"
-            name
-        } catch (e: IOException) {
-            e.printStackTrace()
-            "Sconosciuto"
-        }
-    }
-
-    fun getClosestPlaceId(
-        lat: Double,
-        lon: Double,
-        allPlaces: List<Place>,
-        toleranceMeters: Float = 50f
-    ): Int {
-        val target = android.location.Location("").apply {
-            latitude = lat
-            longitude = lon
-        }
-        val closest = allPlaces.minByOrNull { place ->
-            val loc = android.location.Location("").apply {
-                latitude = place.latitudine
-                longitude = place.longitudine
-            }
-            target.distanceTo(loc)
-        }
-        val distance = closest?.let {
-            val loc = android.location.Location("").apply {
-                latitude = it.latitudine
-                longitude = it.longitudine
-            }
-            target.distanceTo(loc)
-        }
-        return if (closest != null && distance != null && distance < toleranceMeters) {
-            closest.id
-        } else {
-            -1
-        }
-    }
-
     //Metodo che prendendo la variabile tracking_running mi dice se il tracciamento è ancora attivo
     fun refreshTrackingFlag(context: Context) {
         val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
         _trackingRunningFlag.postValue(prefs.getBoolean("tracking_running", false))
+    }
+
+    fun getCurrentPlace(callback: (Place?) -> Unit) {
+        val fusedClient = LocationServices.getFusedLocationProviderClient(application)
+
+        if (ActivityCompat.checkSelfPermission(
+                application,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            Toast.makeText(application, "Permessi posizione non concessi", Toast.LENGTH_SHORT)
+                .show()
+            callback(null)
+            return
+        }
+
+        fusedClient.lastLocation.addOnSuccessListener { location ->
+            if (location != null) {
+                val cityName = try {
+                    Geocoder(application, Locale.getDefault())
+                        .getFromLocation(location.latitude, location.longitude, 1)
+                        ?.firstOrNull()
+                        ?.locality ?: "Unknown"
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                    "Unknown"
+                }
+
+                callback(
+                    Place(
+                        id = 0,
+                        latitudine = String.format(Locale.US, "%.4f", location.latitude).toDouble(),
+                        longitudine = String.format(Locale.US, "%.4f", location.longitude)
+                            .toDouble(),
+                        name = cityName
+                    )
+                )
+            } else {
+                Toast.makeText(
+                    application.baseContext,
+                    "Impossibile ottenere la posizione attuale",
+                    Toast.LENGTH_SHORT
+                ).show()
+                callback(null)
+            }
+        }.addOnFailureListener {
+            Toast.makeText(
+                application.baseContext,
+                "Errore nell'ottenere la posizione",
+                Toast.LENGTH_SHORT
+            ).show()
+            callback(null)
+        }
     }
 
     class MapViewModelFactory(private val application: Application) : ViewModelProvider.Factory {

@@ -127,43 +127,6 @@ class StatisticsViewModel(private val repository: TripRepository) : ViewModel() 
         return repository.getPlacedById(tripId)
     }
 
-
-/*
-    fun loadAllPlaces() {
-
-        val tripsLiveData = repository.getAllTrips()
-        Log.d("Stat", "getAllTrips() chiamato")
-        Log.e("Stat","STAMPA LAT LONGoooTTT ${tripsLiveData.value?.size ?: 0}")
-        repository.getAllTrips().observeForever { tripsList ->
-            val allPlacesList = mutableListOf<Place>()
-            Log.e("Stat","STAMPA LAT LONGi")
-            Log.e("Stat","STAMPA LAT LONGooo ${tripsList.size}")
-            for (trip in tripsList) {
-                repository.getPlacedById(trip.id).observeForever { tripPlaces ->
-                    allPlacesList.addAll(tripPlaces)
-                    allPlaces.postValue(allPlacesList)
-                }
-            }
-        }
-        Log.e("Stat","STAMPA LAT LONG")
-
-
-    }
-
-    fun computeDensities(trips: List<Trip>): ArrayList<LatLng> {
-        val latLngList = ArrayList<LatLng>()
-        for (trip in trips) {
-            Log.d("Stat", "Processing trip with ID: ${trip.id}")
-            val places = repository.getPlacedById(trip.id).value ?: emptyList()
-            Log.d("Stat", "Found ${places.size} places for trip ID: ${trip.id}")
-            for (place in places) {
-                latLngList.add(LatLng(place.latitudine, place.longitudine))
-            }
-        }
-        return latLngList
-    }
-*/
-
     fun calculateTotalDistance(places: List<Place>): Double {
         if (places.size < 2){
             return 0.0

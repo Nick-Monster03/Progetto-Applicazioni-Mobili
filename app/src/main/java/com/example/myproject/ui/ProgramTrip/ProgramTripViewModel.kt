@@ -7,7 +7,6 @@ import com.example.myproject.Database.Entities.TripPlan
 import com.example.myproject.Database.Entities.TripType
 import com.example.myproject.Repositories.TripPlanRepository
 import java.util.Calendar
-import java.util.Date
 import java.util.Locale
 
 class ProgramTripViewModel(private val tripPlanRepository: TripPlanRepository) : ViewModel() {
@@ -90,105 +89,4 @@ class ProgramTripViewModel(private val tripPlanRepository: TripPlanRepository) :
     }
 }
 
-/*
-class ProgramTripViewModel(private val trip_repository: TripRepository, private val place_repository: PlaceRepository,
-                           private val trip_place_repository: TripPlaceRepository
-) : ViewModel(){
 
-
-    fun addTrip(trip: Trip): Long {
-        return trip_repository.insertTrip(trip)
-    }
-
-    fun addPlace(place: Place) {
-        place_repository.insert(place)
-    }
-
-    fun addTripPlace(trip_place: TripPlace) {
-        trip_place_repository.insertTripPlace(trip_place)
-    }
-
-    fun existPlace(place: Place): Boolean {
-        return place_repository.existsPlace(place)
-    }
-
-    fun getPlace(place: Place): Int {
-        return place_repository.getPlaceId(place)
-    }
-
-    fun validateTripInput(
-        tripTypeStr: String,
-        startDate: String,
-        startPlace: String,
-        endDate: String,
-        endPlace: String,
-        description: String
-    ): String? {
-        val type = when (tripTypeStr.uppercase()) {
-            "JOURNEY" -> TripType.JOURNEY
-            "EXCURSION" -> TripType.EXCURSION
-            else -> TripType.LOCAL
-        }
-
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply {
-            isLenient = false
-        }
-
-        fun parseDateOrNull(dateStr: String): Date? =
-            try { dateFormat.parse(dateStr) } catch (e: Exception) { null }
-
-        if (startDate.isBlank()) return "Inserisci una data di inizio"
-        val startDateParsed = parseDateOrNull(startDate)
-            ?: return "Formato data di inizio non valido (usa yyyy-MM-dd)"
-
-        if (startPlace.isBlank()) return "Inserisci un luogo di partenza"
-
-        val today = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.time
-
-        if (startDateParsed.before(today)) return "La data di inizio non può essere nel passato"
-
-        if (type == TripType.EXCURSION || type == TripType.JOURNEY) {
-            if (endPlace.isBlank() && endDate.isBlank()) {
-                return "Inserisci almeno una data di fine o un luogo di arrivo"
-            }
-        }
-
-        if (type == TripType.JOURNEY && endDate.isNotBlank()) {
-            val endDateParsed = parseDateOrNull(endDate)
-                ?: return "Formato data di fine non valido (usa yyyy-MM-dd)"
-
-            if (endDateParsed.before(startDateParsed)) {
-                return "La data di fine non può essere precedente alla data di inizio"
-            }
-            if (endDateParsed.before(today)) {
-                return "La data di fine non può essere nel passato"
-            }
-        }
-
-        return null
-    }
-
-
-
-
-    class ProgramTripViewModelFactory(
-        private val trip_repository: TripRepository,
-        private val place_repository: PlaceRepository,
-        private val trip_place_repository: TripPlaceRepository
-    ) : ViewModelProvider.Factory {
-
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            if (modelClass.isAssignableFrom(ProgramTripViewModel::class.java)) {
-                return ProgramTripViewModel(trip_repository, place_repository, trip_place_repository) as T
-            }
-            throw IllegalArgumentException("Unknown ViewModel class")
-        }
-    }
-
-}
-*/

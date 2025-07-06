@@ -52,13 +52,7 @@ class ProgramTripFragment : Fragment() {
                 val endPlace = editEndPlace.text.toString().trim()
                 val description = editDescription.text.toString()
 
-                val validationError = viewModel.validateTripPlanInput(
-                    tripType,
-                    startDate,
-                    endDate,
-                    startPlace,
-                    endPlace
-                )
+                val validationError = viewModel.validateTripPlanInput(tripType, startDate, endDate, startPlace, endPlace)
 
                 if (validationError != null) {
                     showError(validationError)
@@ -89,9 +83,15 @@ class ProgramTripFragment : Fragment() {
                     description = description,
                     type = type
                 )
-
-                withContext(Dispatchers.IO) {
-                    viewModel.addTripPlan(plan)
+                // Aggiungo il piano del viaggio al database, ma mi assicuro che sia fatto con successo
+                try {
+                    withContext(Dispatchers.IO) {
+                        viewModel.addTripPlan(plan)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    showError("Errore durante la creazione del piano del viaggio.")
+                    return@launch
                 }
 
                 AlertDialog.Builder(requireContext())

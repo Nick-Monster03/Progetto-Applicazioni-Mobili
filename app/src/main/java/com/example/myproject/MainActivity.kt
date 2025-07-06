@@ -14,7 +14,6 @@ import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.navigation.NavController
@@ -76,8 +75,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         //Richiesta dei permessi necessari
         requestAllPermissions()
-        //Iposta rilevamento del movimento
-        //startActivityRecognition()
+
         // Inizializza il PeriodicWorkRequest per il controllo dell'inattività
         //DEBUG ogni 5 minuti val periodicRequest = PeriodicWorkRequestBuilder<InactivityWorker>(5, TimeUnit.MINUTES).build()
         val periodicRequest = PeriodicWorkRequestBuilder<InactivityWorker>(24, TimeUnit.HOURS).build()

@@ -10,8 +10,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.myProject.R
-import com.example.myproject.Repositories.TripRepository
-import com.example.myproject.ui.TripsStorical.TripViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
@@ -20,7 +18,6 @@ import kotlinx.coroutines.launch
 class AddPhotoFragment : Fragment() {
 
     private lateinit var photoViewModel: PhotoViewModel
-    private lateinit var tripViewModel: TripViewModel
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -33,10 +30,6 @@ class AddPhotoFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val tripRepository = TripRepository(requireActivity().application)
-        val factory = TripViewModel.TripViewModelFactory(tripRepository)
-        tripViewModel = ViewModelProvider(this, factory)[TripViewModel::class.java]
-
         photoViewModel = ViewModelProvider(this)[PhotoViewModel::class.java]
 
         val outerRecycler = view.findViewById<RecyclerView>(R.id.outer_recycler)
@@ -45,7 +38,7 @@ class AddPhotoFragment : Fragment() {
         val adapter = GroupedPhotoAdapter(emptyList(), photoViewModel, viewLifecycleOwner, viewLifecycleOwner.lifecycleScope)
         outerRecycler.adapter = adapter
 
-        tripViewModel.getAllTrips().observe(viewLifecycleOwner) { trips ->
+        photoViewModel.getAllTrips().observe(viewLifecycleOwner) { trips ->
             val coroutineScope = viewLifecycleOwner.lifecycleScope
             coroutineScope.launch {
                 val tripsWithPhotos = trips.filter { trip ->

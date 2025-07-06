@@ -121,21 +121,6 @@ class StatisticsFragment : Fragment(R.layout.nav_statistics), OnMapReadyCallback
         chart.data = BarData(dataSet)
         chart.invalidate()
     }
-/*
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun updateMap(tripIds: List<Int>) {
-        map.clear()
-        tripIds.forEach { tripId ->
-            viewModel.getPlacesForTrip(tripId).observe(viewLifecycleOwner) { places ->
-                val points = places.map { LatLng(it.latitudine, it.longitudine) }
-                if (points.size > 1) {
-                    val polyline = PolylineOptions().addAll(points).color(Color.RED)
-                    map.addPolyline(polyline)
-                    map.animateCamera(CameraUpdateFactory.newLatLngZoom(points.last(), 8f))
-                }
-            }
-        }
-    }*/
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun updateLineChart(trips: List<Trip>) {

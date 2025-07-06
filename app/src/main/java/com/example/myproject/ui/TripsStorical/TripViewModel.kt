@@ -34,7 +34,8 @@ class TripViewModel(private val repository: TripRepository) : ViewModel() {
 
     fun getDistanceById(tripId: Int): LiveData<Double> {
         val result = MediatorLiveData<Double>()
-        val placesLiveData = repository.getPlacedById(tripId)
+        //val placesLiveData = repository.getPlacedById(tripId)
+        val placesLiveData = getPlacesById(tripId)
 
         result.addSource(placesLiveData) { places ->
             if (places != null && places.size >= 2) {

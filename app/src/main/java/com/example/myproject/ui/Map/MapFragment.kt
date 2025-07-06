@@ -1,14 +1,12 @@
 package com.example.myproject.ui.map
 import android.Manifest
 import android.app.Activity
-import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
-import android.location.Geocoder
 import android.os.Build
 import android.os.Bundle
 import android.os.Looper
@@ -114,7 +112,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             val isServiceRunning = prefs.getBoolean("tracking_running", false)
             // Se il tracking running è attivo (o flag true), fa solo STOP.
             // Se il tracking running è inattivo (flag false), fa solo START.
-            getCurrentPlace { place ->
+            viewModel.getCurrentPlace { place ->
                 if (place != null) {
                     if (viewModel.isTripRunning.value == true || isServiceRunning) {
                         viewModel.stopTrip(place)
@@ -252,58 +250,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
     }
 
-    private fun getCurrentPlace(callback: (Place?) -> Unit) {
-        val fusedClient = LocationServices.getFusedLocationProviderClient(requireContext())
 
-        if (ActivityCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            Toast.makeText(requireContext(), "Permessi posizione non concessi", Toast.LENGTH_SHORT)
-                .show()
-            callback(null)
-            return
-        }
-
-        fusedClient.lastLocation.addOnSuccessListener { location ->
-            if (location != null) {
-                val cityName = try {
-                    Geocoder(requireContext(), Locale.getDefault())
-                        .getFromLocation(location.latitude, location.longitude, 1)
-                        ?.firstOrNull()
-                        ?.locality ?: "Unknown"
-                } catch (e: IOException) {
-                    e.printStackTrace()
-                    "Unknown"
-                }
-
-                callback(
-                    Place(
-                        id = 0,
-                        latitudine = String.format(Locale.US, "%.4f", location.latitude).toDouble(),
-                        longitudine = String.format(Locale.US, "%.4f", location.longitude)
-                            .toDouble(),
-                        name = cityName
-                    )
-                )
-            } else {
-                Toast.makeText(
-                    requireContext(),
-                    "Impossibile ottenere la posizione attuale",
-                    Toast.LENGTH_SHORT
-                ).show()
-                callback(null)
-            }
-        }.addOnFailureListener {
-            Toast.makeText(
-                requireContext(),
-                "Errore nell'ottenere la posizione",
-                Toast.LENGTH_SHORT
-            ).show()
-            callback(null)
-        }
-    }
 
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -314,7 +261,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                 val inputStream = requireContext().contentResolver.openInputStream(imageUri)
                 val bitmap = BitmapFactory.decodeStream(inputStream)
 
-                getCurrentPlace { place ->
+                viewModel.getCurrentPlace{ place ->
                     if (place != null) {
                         if (viewModel.isTripRunning.value == true) {
                             val id_trip = viewModel.tripId.value
@@ -430,105 +377,6 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         }
     }
 }
-
-
-
-
-/*SPOSTATI NEL MAIN ACTIVITY
-    //Metodi per ottenere tutti i permessi rischiesti per il corretto funzionamento dell' applicazione
-    private fun requestAllPermissions() {
-        // Controllo e chiedo FINE e COARSE
-        val permissions = arrayOf(
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION
-        )
-        val notGranted = permissions.filter {
-            ActivityCompat.checkSelfPermission(requireContext(), it) != PackageManager.PERMISSION_GRANTED
-        }
-
-        if (notGranted.isNotEmpty()) {
-            requestPermissions(notGranted.toTypedArray(), REQUEST_LOCATION_PERMISSIONS)
-        } else {
-            // Già concesse, passo al background
-            requestBackgroundLocation()
-        }
-    }
-
-    private fun requestBackgroundLocation() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            if (ActivityCompat.checkSelfPermission(
-                    requireContext(),
-                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                requestPermissions(
-                    arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION),
-                    REQUEST_BACKGROUND_LOCATION
-                )
-            } else {
-                // Già concesso
-                requestNotificationPermission()
-            }
-        } else {
-            // Versioni più vecchie non hanno il background separato
-            requestNotificationPermission()
-        }
-    }
-
-    private fun requestNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ActivityCompat.checkSelfPermission(
-                    requireContext(),
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                requestPermissions(
-                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                    REQUEST_NOTIFICATIONS
-                )
-            }
-        }
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
-        when (requestCode) {
-            REQUEST_LOCATION_PERMISSIONS -> {
-                if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-                    Toast.makeText(requireContext(), "Permessi posizione concessi", Toast.LENGTH_SHORT).show()
-                    requestBackgroundLocation()
-                } else {
-                    Toast.makeText(requireContext(), "Permessi posizione negati", Toast.LENGTH_LONG).show()
-                }
-            }
-
-            REQUEST_BACKGROUND_LOCATION -> {
-                if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-                    Toast.makeText(requireContext(), "Permesso background concesso", Toast.LENGTH_SHORT).show()
-                    requestNotificationPermission()
-                } else {
-                    Toast.makeText(requireContext(), "Permesso background negato", Toast.LENGTH_LONG).show()
-                }
-            }
-
-            REQUEST_NOTIFICATIONS -> {
-                if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-                    Toast.makeText(requireContext(), "Permesso notifiche concesso", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(requireContext(), "Permesso notifiche negato", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-    }
-*/
-
-
-
 
 
 /*DEBUG VISUALIZZA LA IMAGE VIEW IN ALTO (decommentare la Image view anche nel layout)
