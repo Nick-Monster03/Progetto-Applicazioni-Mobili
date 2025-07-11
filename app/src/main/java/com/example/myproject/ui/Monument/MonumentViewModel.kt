@@ -45,16 +45,6 @@ class MonumentViewModel(application: Application) : AndroidViewModel(application
         repo.insert(monument)
     }
 
-    fun serachMonuments(query: String): LiveData<List<Monument>> {
-         if (query.isNullOrBlank()) {
-            return repo.getAllMonuments()
-        }
-         else {
-            return repo.searchMonuments(query)
-        }
-    }
-
-
     fun changeCheck(monumentId: Long){
         //Tutti i controlli sull' id del monumento sono già fatti nel repository
         viewModelScope.launch {

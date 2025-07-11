@@ -51,7 +51,6 @@ class MonumentFragment : Fragment() {
     ): View? = inflater.inflate(R.layout.nav_monuments_list, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        // Setup ViewModel
         viewModel = ViewModelProvider(
             this,
             MonumentViewModel.MonumentViewModelFactory(requireActivity().application)
@@ -60,13 +59,11 @@ class MonumentFragment : Fragment() {
         ensureLocationPermissions()
         geofencingClient = LocationServices.getGeofencingClient(requireContext())
 
-        // Views
         val recyclerView = view.findViewById<RecyclerView>(R.id.recyclerMonuments)
         val searchInput = view.findViewById<EditText>(R.id.editSearch)
         val addButton = view.findViewById<Button>(R.id.buttonAddMonument)
         val saveButton = view.findViewById<Button>(R.id.buttonSave)
 
-        // Adapter
         adapter = MonumentAdapter { monument ->
             viewModel.changeCheck(monument.id)
         }
@@ -79,7 +76,6 @@ class MonumentFragment : Fragment() {
             adapter.submitList(list)
         }
 
-        // Filtro automatico mentre si scrive
         searchInput.addTextChangedListener {
             viewModel.setSearchQuery(it?.toString() ?: "")
         }
@@ -94,16 +90,12 @@ class MonumentFragment : Fragment() {
             geofencingClient.removeGeofences(pendingIntent).addOnCompleteListener {
                 //DEBUG:
                 // Log.d("GEOFENCE", "Geofence rimossi")
-
-                val checkedMonuments = adapter.currentList.filter { it.isChecked }
-                //meglio ottenere la lista direttamente dall'adapter essendo che sarà sicuramente
-                // aggiornata con i cambiamenti fatti dall'utente, mentre il db potrebbe avere dei ritardi
-                // val checedMonuments = viewModel.getCheckedMonuments()
+                val checkedMonuments = viewModel.getCheckedMonuments().value
 
                 //DEBUG:
                 // Log.d("GEOFENCE", "Aggiunti questi geofence: ${checkedMonuments.map { it.name }}")
 
-                addGeofences(checkedMonuments)
+                addGeofences(checkedMonuments ?: emptyList())//La lista potrebbe essere vuota, ma anche quella casistica è gestita nell' add geofences
             }
 
         }
@@ -147,8 +139,6 @@ class MonumentFragment : Fragment() {
 
         geofencingClient.addGeofences(request, pendingIntent)
             .addOnSuccessListener {
-                //DEBUG:
-                // Log.d("GEOFENCE", "Geofences added: ${monuments.map { it.name }}")
                 Toast.makeText(requireContext(), "Geofence attivati", Toast.LENGTH_SHORT).show()
             }
             .addOnFailureListener { e ->

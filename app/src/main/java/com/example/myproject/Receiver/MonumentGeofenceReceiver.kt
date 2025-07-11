@@ -13,52 +13,7 @@ import com.google.android.gms.location.GeofencingEvent
 
 class MonumentGeofenceReceiver : BroadcastReceiver() {
 
-    /*override fun onReceive(context: Context?, intent: Intent?) {
-        val now = System.currentTimeMillis()
 
-        fun logPersistently(message: String) {
-            Log.d("GEOFENCE_RECEIVER", message)
-            // Salva nel file interno
-            context?.openFileOutput("geofence_log.txt", Context.MODE_APPEND)?.use {
-                it.write("[$now] $message\n".toByteArray())
-            }
-            // Mostra notifica
-            context?.let { showNotification(it, message) }
-        }
-
-        if (context == null || intent == null) {
-            logPersistently("❌ Context or Intent is null. Aborting.")
-            return
-        }
-
-        val isAvailable = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(context)
-        logPersistently("✅ onReceive triggered — Play Services availability: $isAvailable")
-
-        logPersistently("Intent action: ${intent.action}")
-        logPersistently("Intent extras keys: ${intent.extras?.keySet()?.joinToString() ?: "Nessuna"}")
-
-        val geofencingEvent = GeofencingEvent.fromIntent(intent)
-        if (geofencingEvent == null || geofencingEvent.hasError()) {
-            val errorMessage = geofencingEvent?.let {
-                GeofenceStatusCodes.getStatusCodeString(it.errorCode)
-            } ?: "GeofencingEvent is null"
-            logPersistently("❌ Error in geofencing event: $errorMessage")
-            return
-        }
-
-        val transitionType = geofencingEvent.geofenceTransition
-        val triggeringGeofences = geofencingEvent.triggeringGeofences
-        val ids = triggeringGeofences?.joinToString(", ") { it.requestId }
-
-        val message = when (transitionType) {
-            Geofence.GEOFENCE_TRANSITION_ENTER -> "➡️ Entrato in zona: $ids"
-            Geofence.GEOFENCE_TRANSITION_EXIT -> "⬅️ Uscito dalla zona: $ids"
-            else -> "❓ Transizione sconosciuta: $transitionType ($ids)"
-        }
-
-        logPersistently(message)
-        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-    }*/
 
     override fun onReceive(context: Context?, intent: Intent?) {
         if (context == null || intent == null) {
@@ -78,7 +33,7 @@ class MonumentGeofenceReceiver : BroadcastReceiver() {
             // val error = geofencingEvent?.errorCode?.let {
             //    GeofenceStatusCodes.getStatusCodeString(it)
             //} ?: "GeofencingEvent is null"
-            //Log.e("GEOFENCE_RECEIVER", "❌ Errore geofence: $error")
+            //Log.e("GEOFENCE_RECEIVER", "Errore geofence: $error")
             return
         }
 

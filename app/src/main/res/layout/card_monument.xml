@@ -26,7 +26,11 @@
         <CheckBox
             android:id="@+id/checkGeofence"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:buttonTint="@color/teal"
+            android:buttonTintMode="multiply"
+            android:checked="true"
+            card_view:centerIfNoTextEnabled="false" />
 
     </LinearLayout>
 </androidx.cardview.widget.CardView>

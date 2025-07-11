@@ -5,7 +5,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- EditText per ricerca -->
     <EditText
         android:id="@+id/editSearch"
         android:layout_width="0dp"
@@ -18,18 +17,19 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- Bottone "+ Add" -->
     <Button
         android:id="@+id/buttonAddMonument"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:backgroundTint="@color/teal"
         android:minHeight="48dp"
         android:text="+ Add"
+        android:textColorLink="@color/teal"
+        app:iconTint="@color/teal"
         app:layout_constraintBottom_toBottomOf="@id/editSearch"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/editSearch" />
 
-    <!-- RecyclerView -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerMonuments"
         android:layout_width="0dp"
@@ -41,13 +41,14 @@
         android:layout_marginTop="12dp"
         android:layout_marginBottom="12dp" />
 
-    <!-- Bottone "Salva" -->
     <Button
         android:id="@+id/buttonSave"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:backgroundTint="@color/teal"
         android:text="Salva Monumenti Attivi"
+        android:textColorLink="@color/amber"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>
