@@ -1,4 +1,4 @@
-package com.example.myproject
+package com.example.myproject.Services
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -20,6 +20,7 @@ import com.example.myProject.R
 import com.example.myproject.Database.Entities.Place
 import com.example.myproject.Database.Entities.TripPlace
 import com.example.myproject.Database.Entities.TripType
+import com.example.myproject.MainActivity
 import com.example.myproject.Repositories.PlaceRepository
 import com.example.myproject.Repositories.TripPlaceRepository
 import com.example.myproject.Repositories.TripRepository

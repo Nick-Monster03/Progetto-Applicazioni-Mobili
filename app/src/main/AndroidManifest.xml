@@ -38,17 +38,15 @@
             </intent-filter>
 
         </activity>
-        >
+
         <service
-            android:name="com.example.myproject.TrackingService"
+            android:name="com.example.myproject.Services.TrackingService"
             android:exported="false"
             android:foregroundServiceType="location" />
 
 
-        <receiver android:name="com.example.myproject.GeofenceReceiver" android:exported="true"/>
-        <receiver
-            android:name="com.example.myproject.Notification.TransictionReceiver"
-            android:exported="true" />
+        <receiver android:name="com.example.myproject.Receiver.MonumentGeofenceReceiver" android:exported="true" android:enabled="true"/>
+        <receiver android:name="com.example.myproject.Receiver.TransictionReceiver" android:exported="true" android:enabled="true"/>
 
     </application>
 

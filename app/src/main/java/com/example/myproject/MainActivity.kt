@@ -25,7 +25,7 @@ import androidx.work.WorkManager
 import com.example.myProject.R
 import com.example.myproject.Notification.InactivityWorker
 import com.example.myproject.Notification.ProgramTripWorker
-import com.example.myproject.Notification.TransictionReceiver
+import com.example.myproject.Receiver.TransictionReceiver
 import com.google.android.gms.location.ActivityRecognition
 import com.google.android.gms.location.ActivityTransition
 import com.google.android.gms.location.ActivityTransitionRequest

@@ -25,5 +25,10 @@
             android:id="@+id/nav_statistics"
             android:icon="@drawable/statistics"
             android:title="Visualizza Statistiche" />
+
+        <item
+            android:id="@+id/nav_monuments_list"
+            android:icon="@drawable/baseline_campaign_24"
+            android:title="Monuments Allarm" />
     </group>
 </menu>

@@ -41,6 +41,11 @@
         android:name="com.example.myproject.ui.TripsStorical.Note.NotesFragment.NotesFragment"
         tools:layout="@layout/nav_notes" />
 
+    <fragment
+        android:id="@+id/nav_monuments_list"
+        android:name="com.example.myproject.ui.Monument.MonumentFragment"
+        tools:layout="@layout/nav_monuments_list" />
+
     <action
         android:id="@+id/action_descriptionFragment_to_tripMapFragment"
         app:destination="@id/tripMapFragment" />

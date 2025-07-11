@@ -10,8 +10,8 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 @Database(
-    entities = [Trip::class, Place::class, Photo::class, TripPlace::class, Note::class, TripPlan::class],
-    version = 6,
+    entities = [Trip::class, Place::class, Photo::class, TripPlace::class, Note::class, TripPlan::class, Monument::class],
+    version = 7,
     exportSchema = false
 )
 abstract class TravelDatabase : RoomDatabase() {
@@ -22,6 +22,7 @@ abstract class TravelDatabase : RoomDatabase() {
     abstract fun tripPlaceDao(): TripPlaceDao
     abstract fun noteDao(): NoteDao
     abstract fun tripPlanDao(): TripPlanDao
+    abstract fun monumentDao(): MonumentDao
 
     companion object {
         @Volatile
@@ -82,6 +83,23 @@ abstract class TravelDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+            CREATE TABLE IF NOT EXISTS monuments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                name TEXT NOT NULL,
+                lat REAL NOT NULL,
+                lon REAL NOT NULL,
+                isChecked INTEGER NOT NULL DEFAULT 0
+            )
+        """.trimIndent())
+
+                database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_monuments_name ON monuments(name)")
+            }
+        }
+
+
 
         private val sRoomDatabaseCallback = object : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
@@ -99,7 +117,7 @@ abstract class TravelDatabase : RoomDatabase() {
                     TravelDatabase::class.java,
                     "travel_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_4_5, MIGRATION_5_6)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                     .build()
                 INSTANCE = instance
                 instance
