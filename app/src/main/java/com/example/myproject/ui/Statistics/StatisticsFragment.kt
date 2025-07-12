@@ -63,6 +63,7 @@ class StatisticsFragment : Fragment(R.layout.nav_statistics), OnMapReadyCallback
             PeriodFilter.values()
         )
 
+        //Applica il filtro selezionato sulla lista di viaggi
         button.setOnClickListener {
             val selected = spinner.selectedItem as PeriodFilter
             viewModel.setFilter(selected)
@@ -78,16 +79,17 @@ class StatisticsFragment : Fragment(R.layout.nav_statistics), OnMapReadyCallback
         mapFragment.getMapAsync(this)
 
 
-        // Osserva i viaggi filtrati
+        // Osserva i viaggi filtrati e aggiorna i grafici
         viewModel.filteredTrips.observe(viewLifecycleOwner) { trips ->
-            updateChart(trips)
-            viewModel.computeHeatmapPoints(trips)
-            updateLineChart(trips)
+            updateChart(trips) //aggiorna grafico a barre
+            viewModel.computeHeatmapPoints(trips)//calcola punti per la heatmap
+            updateLineChart(trips)//aggiorna grafico lineare
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun updateChart(trips: List<Trip>) {
+        //Crea e aggiorna il grafico a barre (BarChart) che mostra il numero di viaggi(entries) per mese(monthLabels).
         val monthLabels = mutableListOf<String>()
         val entries = mutableListOf<BarEntry>()
 
@@ -102,6 +104,8 @@ class StatisticsFragment : Fragment(R.layout.nav_statistics), OnMapReadyCallback
             entries.add(BarEntry(index, tripsInMonth.size.toFloat()))
             index += 1f
         }
+
+        // Configura asse X e Y del BarChart
         chart.axisRight.isEnabled = false
         chart.description.isEnabled = false
         chart.legend.isEnabled = false
@@ -115,16 +119,17 @@ class StatisticsFragment : Fragment(R.layout.nav_statistics), OnMapReadyCallback
             granularity = 1f
         }
 
+        // Assegna i dati e colora il grafico
         val dataSet = BarDataSet(entries, "Numero viaggi")
         dataSet.color = Color.BLUE
 
         chart.data = BarData(dataSet)
-        chart.invalidate()
+        chart.invalidate()//forza il ridisegnamento
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun updateLineChart(trips: List<Trip>) {
-        val sortedTrips = trips.sortedBy { it.startDate }
+        val sortedTrips = trips.sortedBy { it.startDate } // Ordina i viaggi per data di inizio
 
         val entries = mutableListOf<Entry>()
         val labels = mutableListOf<String>()
@@ -137,6 +142,7 @@ class StatisticsFragment : Fragment(R.layout.nav_statistics), OnMapReadyCallback
             return
         }
 
+        //Per ogni viaggio, calcola la distanza e aggiungi al grafico
         sortedTrips.forEachIndexed { index, trip ->
             viewModel.getPlacesForTrip(trip.id).observe(viewLifecycleOwner) { places ->
                 val distance = viewModel.calculateTotalDistance(places).toFloat()
@@ -146,6 +152,7 @@ class StatisticsFragment : Fragment(R.layout.nav_statistics), OnMapReadyCallback
 
                 collected++
                 if (collected == total) {
+                    // Quando tutte le distanze sono state raccolte, aggiorna il grafico
                     entries.sortBy { it.x }
                     val dataSet = LineDataSet(entries, "Distanza per viaggio").apply {
                         color = Color.GREEN
@@ -182,10 +189,13 @@ class StatisticsFragment : Fragment(R.layout.nav_statistics), OnMapReadyCallback
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
 
+        //Osserva i viaggi filtrati, così se cambia il filtro anche i filteredTrips
+        // vengono aggiornati in automatico e vengoono ricalcolati i punti per la heatmap
         viewModel.filteredTrips.observe(viewLifecycleOwner) { trips ->
             viewModel.computeHeatmapPoints(trips)
         }
 
+        //Quando i punti della heatmap sono pronti allora vengono aggiunti alla mappa
         viewModel.heatmapPoints.observe(viewLifecycleOwner) { points ->
             val heatmapProvider = HeatmapTileProvider.Builder()
                 .data(points)

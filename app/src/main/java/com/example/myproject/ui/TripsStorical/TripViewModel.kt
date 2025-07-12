@@ -18,11 +18,14 @@ import java.time.LocalDate
 
 class TripViewModel(private val repository: TripRepository) : ViewModel() {
 
-    fun updateDescription(tripId: Int, desc: String) {
+    //Prima per ogni viaggio era possibile visualizzare la descrizione
+    //e modificarla, ora invece la descrizione viene inizializzata solo nei viaggi programmati
+    //il metodo è stato comunque tenuto per future implementazioni
+    /*fun updateDescription(tripId: Int, desc: String) {
         viewModelScope.launch(Dispatchers.IO) {
             repository.addDescription(tripId, desc)
         }
-    }
+    }*/
 
     fun getAllTrips(): LiveData<List<Trip>> {
         return repository.getAllEndedTrips()
@@ -32,6 +35,8 @@ class TripViewModel(private val repository: TripRepository) : ViewModel() {
         return repository.getPlacedById(tripId)
     }
 
+    //funzione per ottenere la distanza totale percorsa durante un viaggio
+    //usa MediatorLiveData per osservare le modifiche alla lista di Place
     fun getDistanceById(tripId: Int): LiveData<Double> {
         val result = MediatorLiveData<Double>()
         //val placesLiveData = repository.getPlacedById(tripId)
@@ -67,6 +72,8 @@ class TripViewModel(private val repository: TripRepository) : ViewModel() {
         )
     }
 
+    //funzione per calcolare la distanza totale tra i luoghi di un viaggio
+    //facendo somme parziali a coppie di places
     fun calculateTotalDistance(places: List<Place>): Double {
         if (places.size < 2){
             return 0.0

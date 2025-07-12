@@ -59,6 +59,9 @@ class TrackingService : LifecycleService() {
         createNotificationChannel()
     }
 
+    //Avvio del servizio in base all’azione ricevuta:
+    //START: avvia tracciamento e notifiche
+    //STOP: ferma tracciamento e spegne il servizio
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
@@ -103,7 +106,7 @@ class TrackingService : LifecycleService() {
                     //Log.w("TrackingService", "Ignorato punto con accuratezza scarsa (${location.accuracy}m)")
                     return@forEach
                 }
-
+                lastLocation = location
                 //Filtro vecchiaia (>60 sec) così da evitare che il servizio gps non trovando punti al momento
                 //della geolocalizzasizone prenda dei vecchi punti in cache
                 val ageMillis = System.currentTimeMillis() - location.time
@@ -112,7 +115,7 @@ class TrackingService : LifecycleService() {
                     return@forEach
                 }
 
-                // 3) Prosegui a salvare la posizione
+                //Salvataggio della posizione
                 val latitudine = String.format(Locale.US, "%.4f", location.latitude).toDouble()
                 val longitudine = String.format(Locale.US, "%.4f", location.longitude).toDouble()
                 val place = Place(
@@ -122,6 +125,8 @@ class TrackingService : LifecycleService() {
                     name = getCityFromCoordinates(this@TrackingService, latitudine, longitudine) ?: "Unknown",
                 )
 
+                //Le operazioni di scrittura su database vengono eseguite in una coroutine sul dispatcher IO,
+                //ottimizzato per operazioni di input/output. In questo modo si mantiene responsiva l’interfaccia utente.
                 CoroutineScope(Dispatchers.IO).launch {
                     val placeRepo = PlaceRepository(application)
                     val tripPlaceRepo = TripPlaceRepository(application)
@@ -136,7 +141,8 @@ class TrackingService : LifecycleService() {
 
     private fun startLocationUpdates() {
         isTracking = true
-
+        //Avvia la richiesta di aggiornamenti della posizione GPS.
+        //I parametri dipendono dalla tipologia del viaggio
         val request = when (tripType) {
             TripType.EXCURSION -> {
                 LocationRequest.Builder(
@@ -177,6 +183,7 @@ class TrackingService : LifecycleService() {
 
     }
 
+    //Interrompe l’aggiornamento delle posizioni GPS
     private fun stopLocationUpdates() {
         fusedClient.removeLocationUpdates(locationCallback)
         isTracking = false
@@ -194,7 +201,7 @@ class TrackingService : LifecycleService() {
         val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Tracking in corso")
-            .setContentText("Registrazione viaggio attiva. Strai tracciando " + msg)
+            .setContentText("Registrazione viaggio attiva. Stai tracciando " + msg)
             .setSmallIcon(R.drawable.ic_baseline_notifications_active_24)
             .setContentIntent(pendingIntent)
             .build()
@@ -202,6 +209,7 @@ class TrackingService : LifecycleService() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun createNotificationChannel() {
+        //crea la notifica mostrata durante il tracking in foreground
         val channel = NotificationChannel(
             CHANNEL_ID,
             "Tracking Viaggi",
@@ -211,6 +219,7 @@ class TrackingService : LifecycleService() {
         manager.createNotificationChannel(channel)
     }
 
+    //Questo metodod ci permette tramite geocoder di ottenre il nome di un luogo dalle ccordinate gps
     private fun getCityFromCoordinates(context: Context, lat: Double, lon: Double): String? {
         val geocoder = Geocoder(context, Locale.getDefault())
         return try {
@@ -229,6 +238,7 @@ class TrackingService : LifecycleService() {
     //il cellulare è spento allora sarà località sconosciuta
     @RequiresApi(Build.VERSION_CODES.O)
     private fun startMidnightChecker() {
+        //In futuro invece che avere questo ciclo while continuo si potrebbe creare un worker dedicato
         CoroutineScope(Dispatchers.IO).launch {
             while (isTracking && (tripType == TripType.LOCAL || tripType == TripType.EXCURSION)) {
                 val now = java.time.LocalTime.now()

@@ -46,8 +46,6 @@ import java.util.*
 
 class MapFragment : Fragment(), OnMapReadyCallback {
 
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private lateinit var locationCallback: LocationCallback
     private lateinit var viewModel: MapViewModel
 
     private lateinit var btnStartAndStop: Button
@@ -55,13 +53,9 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     private lateinit var btn_photo: ImageButton
     private lateinit var btn_add_note: ImageButton
     private val GALLERY_REQUEST_CODE = 100
-    private var geofenceAdded = false
     private var polyline: Polyline? = null
     private val polylinePoints = mutableListOf<LatLng>()
     private lateinit var googleMap: GoogleMap
-    private val REQUEST_LOCATION_PERMISSIONS = 1001
-    private val REQUEST_BACKGROUND_LOCATION = 1002
-    private val REQUEST_NOTIFICATIONS = 1003
 
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -81,7 +75,6 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                 Toast.LENGTH_LONG
             ).show()
         }
-        //requestAllPermissions()
         val factory = MapViewModel.MapViewModelFactory(requireActivity().application)
         viewModel = ViewModelProvider(this, factory)[MapViewModel::class.java]
         btnStartAndStop = view.findViewById(R.id.StartAndStopButton)
@@ -148,7 +141,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                                     },
                                     800
                                 ) // 800ms prima di poter aviare un altro viaggio per sicurezza
-
+                                //così da garantire la perfetta interruzione del viaggio precendete
 
                             }
                         }
@@ -177,9 +170,9 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                 if (places.isNotEmpty()) { // se non è vuota significa che il viaggio è in corso
                     //se è vuota vuol dire che è appena iniziato e bypassareà l' if
                     polylinePoints.addAll(
-                        places.map { LatLng(it.latitudine, it.longitudine) }
-                    )
-
+                        places.map { LatLng(it.latitudine, it.longitudine) }//in base ai punti cardinali per ogni place
+                    )                                                      //costruisco i punti della mia polyline
+                                                                           //la distruggo e riformo ogni volta
                 }
                 polyline?.points = polylinePoints
             }
@@ -192,6 +185,8 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         }
         btn_add_note.setOnClickListener { viewModel.showNoteDialog(requireContext()) }
 
+        //Osservo isTripRunning per aggiornare i bottoni e il testo dinamicamente
+        //es: se il viaggio non è avviato perchè devo permettere all'utente di caricare fotot e/o note
         viewModel.isTripRunning.observe(viewLifecycleOwner) { isRunning ->
             btn_photo.visibility = if (isRunning) View.VISIBLE else View.GONE
             btn_add_note.visibility = if (isRunning) View.VISIBLE else View.GONE
@@ -199,8 +194,10 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             textView.text = if (isRunning) "Interrompi Viaggio" else "Avvia il tuo Viaggio"
         }
 
+        //Osservo la posizione per centrare la mappa sulla posizione corrente
         viewModel.location.observe(viewLifecycleOwner) { loc ->
             if (loc != null && ::googleMap.isInitialized) {
+                // Crea una nuova posizione
                 val position = CameraPosition.Builder()
                     .target(loc)
                     .zoom(17f)
@@ -213,7 +210,12 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
         val mapFragment = childFragmentManager.findFragmentById(R.id.map) as? SupportMapFragment
         mapFragment?.getMapAsync(this)
+
+        // Ottiene il provider della posizione da Google Play Services
         val fusedClient = LocationServices.getFusedLocationProviderClient(requireContext())
+
+        // Controlla se il permesso per la localizzazione precisa è stato concesso
+        // e recupera la posizione più recente del dispositivo, se disponibile
         if (ActivityCompat.checkSelfPermission(
                 requireContext(),
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -276,6 +278,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                                         val lastPlaceId = lastTripPlace?.placeId ?: -1
 
                                         if (lastPlaceId != -1) {
+                                            // Salva la foto associandola all'ultimo punto registrato e ovviamente il viaggio
                                             savePhotoToPlace(lastPlaceId, id_trip, bitmap)
                                         } else {
                                             Toast.makeText(
@@ -318,23 +321,21 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             val photosDir = File(requireContext().filesDir, "photos")
             if (!photosDir.exists()) photosDir.mkdirs()
 
-            val photoFile = File(photosDir, filename)
+            val photoFile = File(photosDir, filename)//creazione del file foto
             FileOutputStream(photoFile).use {
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 85, it)
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 85, it)//scrittura della foto nel file .jpeg
             }
 
             if (viewModel.existPhoto(tripId, photoFile.absolutePath)) {
                 return@launch
             }
-
+            //Aggiungiamo la foto al database
             withContext(Dispatchers.Main) {
                 viewModel.addPhoto(
                     id_place = placeId,
                     id_trip = tripId,
                     photo_path = photoFile.absolutePath,
-                    timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(
-                        Date()
-                    )
+                    timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
                 )
                 Toast.makeText(requireContext(), "Foto aggiunta con successo", Toast.LENGTH_SHORT)
                     .show()
@@ -344,7 +345,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
 
     //Questa estensione mi evita ogni volta che l' observer immetta ogni volta tutti i dati
-    //del LiveData tripPlaces ottenuto con viewModel.getPlacesOfTrip(id_trip)
+    //del LiveData tripPlaces ottenuto con viewModel.getTripPlaces(id_trip)
     //Se l' observer non venisse rimosso alla prima chiamata allora sarebbe effettuata l' operazione di
     //aggiunta di una foto ogni volta che nel LiveData viene aggiunto qualcosa, causando un loop infinito
     fun <T> LiveData<T>.observeOnce(owner: LifecycleOwner, observer: Observer<T>) {
@@ -356,6 +357,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         })
     }
 
+// Alla ripresa del Fragment, aggiorna lo stato del tracking leggendo dalle SharedPreferences
     override fun onResume() {
         super.onResume()
         viewModel.refreshTrackingFlag(requireContext())

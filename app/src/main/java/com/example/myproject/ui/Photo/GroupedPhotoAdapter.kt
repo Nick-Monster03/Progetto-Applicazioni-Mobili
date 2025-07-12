@@ -1,27 +1,18 @@
 package com.example.myproject.ui.Photo
 
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import androidx.lifecycle.LifecycleOwner
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.myProject.R
-import com.example.myproject.Database.Entities.Photo
-import com.example.myproject.Database.Entities.Place
 import com.example.myproject.Database.Entities.Trip
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class GroupedPhotoAdapter(
-    private var trips: List<Trip>,
-    private val photoViewModel: PhotoViewModel,
-    private val lifecycleOwner: LifecycleOwner,
-    private val coroutineScope: CoroutineScope,
-) : RecyclerView.Adapter<GroupedViewHolder>() {
+class GroupedPhotoAdapter(private var trips: List<Trip>, private val photoViewModel: PhotoViewModel, private val lifecycleOwner: LifecycleOwner, private val coroutineScope: CoroutineScope,) : RecyclerView.Adapter<GroupedViewHolder>() {
 
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GroupedViewHolder {
@@ -61,6 +52,7 @@ class GroupedPhotoAdapter(
 
     override fun getItemCount() = trips.size
 
+    //Viaggi effettuati aventi almeno una foto
     fun updateTrips(newTrips: List<Trip>) {
         trips = newTrips
         notifyDataSetChanged()

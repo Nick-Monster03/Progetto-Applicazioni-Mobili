@@ -29,6 +29,8 @@ class MonumentViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    // metodo che dato una lista di Monuments gli filtra in base al
+    //matching tra una query (string) e il nome del monumento
     private fun filterList(list: List<Monument>, query: String): List<Monument> {
         if (query.isBlank())
             return list

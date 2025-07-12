@@ -38,10 +38,10 @@ class MonumentFragment : Fragment() {
     private lateinit var viewModel: MonumentViewModel
     private lateinit var adapter: MonumentAdapter
     private lateinit var geofencingClient: GeofencingClient
+
+    //PendingIntent associato al BroadcastReceiver che gestisce gli eventi di geofence
     private val pendingIntent: PendingIntent by lazy {
         val intent = Intent(requireContext(), MonumentGeofenceReceiver::class.java)
-        // We use FLAG_UPDATE_CURRENT so that we get the same pending intent back when calling
-        // addGeofences() and removeGeofences().
         PendingIntent.getBroadcast(requireContext(), 0, intent,  PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE)
     }
 
@@ -56,6 +56,7 @@ class MonumentFragment : Fragment() {
             MonumentViewModel.MonumentViewModelFactory(requireActivity().application)
         )[MonumentViewModel::class.java]
 
+        //metodo che verifica e richiede i permessi di localizzazione
         ensureLocationPermissions()
         geofencingClient = LocationServices.getGeofencingClient(requireContext())
 
@@ -65,27 +66,30 @@ class MonumentFragment : Fragment() {
         val saveButton = view.findViewById<Button>(R.id.buttonSave)
 
         adapter = MonumentAdapter { monument ->
+            //definisco la callback che viene scatenata ad ogni cambio di stato della checkbox
             viewModel.changeCheck(monument.id)
         }
 
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = adapter
 
-        // Osserva i dati filtrati
+        //Osserva i monumenti filtrati in base alla stringa inserita nella barra di ricerca (la nostra query)
+        //quindi quando questa cambia, la lista dei monumenti viene aggiornata
         viewModel.filteredMonuments.observe(viewLifecycleOwner) { list ->
             adapter.submitList(list)
         }
 
+        //Quando l'utente digita nella barra di ricerca, aggiorna la query nel ViewModel e
+        //questo scatena il ricalcolo automatico della lista filtrata
         searchInput.addTextChangedListener {
             viewModel.setSearchQuery(it?.toString() ?: "")
         }
 
-        // Aggiunta nuovo monumento
         addButton.setOnClickListener {
-            showAddMonumentDialog()
+            showAddMonumentDialog()//Aggiunta nuovo monumento
         }
 
-        // Salvataggio Geofence attivi
+        //Salvataggio Geofence attivi e rimozione dei precedenti
         saveButton.setOnClickListener {
             geofencingClient.removeGeofences(pendingIntent).addOnCompleteListener {
                 //DEBUG:
@@ -107,7 +111,7 @@ class MonumentFragment : Fragment() {
             ) != PackageManager.PERMISSION_GRANTED
         ) return
 
-        if (monuments.isEmpty()) {
+        if (monuments.isEmpty()) {//Se nessun monumento è selezionato, rimuove tutti i geofence
             geofencingClient.removeGeofences(pendingIntent)
                 .addOnSuccessListener {
                     Toast.makeText(requireContext(), "Tutti i geofence rimossi", Toast.LENGTH_SHORT).show()
@@ -117,7 +121,7 @@ class MonumentFragment : Fragment() {
                 }
             return
         }
-
+        // Crea una lista di geofence, uno per ogni monumento checkato
         val geofenceList = monuments.map { monument ->
             Geofence.Builder()
                 .setRequestId(monument.name)
@@ -125,7 +129,7 @@ class MonumentFragment : Fragment() {
                 .setTransitionTypes(
                     Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT
                 )
-                .setExpirationDuration(Geofence.NEVER_EXPIRE)
+                .setExpirationDuration(Geofence.NEVER_EXPIRE)//fino alla sua rimozione rimane attivo
                 .build()
         }
         //DEBUG:

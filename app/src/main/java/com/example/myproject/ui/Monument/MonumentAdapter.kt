@@ -6,11 +6,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.myProject.R
 import com.example.myproject.Database.Entities.Monument
 
-class MonumentAdapter(
-    private val onCheckChanged: (Monument) -> Unit
-) : RecyclerView.Adapter<MonumentViewHolder>() {
+class MonumentAdapter(private val onCheckChanged: (Monument) -> Unit) : RecyclerView.Adapter<MonumentViewHolder>() {
 
     private var monuments = listOf<Monument>()
+    //Accesso pubblico alla lista corrente (usato in precedenza per il ViewModel, ma adesso inutilizzato)
     val currentList: List<Monument>
         get() = monuments
 
@@ -27,7 +26,7 @@ class MonumentAdapter(
         holder.checkBox.setOnCheckedChangeListener(null)
         holder.checkBox.isChecked = monument.isChecked
         holder.checkBox.setOnCheckedChangeListener { _, _ ->
-            onCheckChanged(monument)
+            onCheckChanged(monument)//callback per gestire il cambio di stato della checkbox
         }
     }
 
@@ -35,7 +34,7 @@ class MonumentAdapter(
 
     fun submitList(list: List<Monument>) {
         monuments = if (list.isNotEmpty()) list else emptyList()
-        notifyDataSetChanged()
+        notifyDataSetChanged()//dopo l' aggiornamento della lista opvviamento dobbiamo notificare il recyclerView
     }
 }
 

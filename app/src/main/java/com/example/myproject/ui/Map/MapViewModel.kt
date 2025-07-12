@@ -40,36 +40,46 @@ import java.util.*
 
 class MapViewModel(application: Application) : AndroidViewModel(application) {
 
+    // Inizializzazione dei repository per accedere al database
     private val placeRepository = PlaceRepository(application)
     private val tripRepository = TripRepository(application)
     private val tripPlaceRepository = TripPlaceRepository(application)
     private val photoRepository = PhotoRepository(application)
     private val noteRepository = NoteRepository(application)
 
+    // Posizione corrente dell’utente
     private val _location = MutableLiveData<LatLng?>()
     val location: LiveData<LatLng?> = _location
 
+    // Stato del viaggio (attivo o meno)
     private val _isTripRunning = MutableLiveData<Boolean>()
     val isTripRunning: LiveData<Boolean> = _isTripRunning
 
+    // ID del viaggio corrente
     private val _tripId = MutableLiveData<Int>()
     val tripId: LiveData<Int> get() = _tripId
 
+    // ID dell’ultimo luogo registrato
     private val _placeId = MutableLiveData<Int>()
     val placeId: LiveData<Int> get() = _placeId
 
+    // Flag che indica se il servizio di tracking è attivo o meno ()
     private val _trackingRunningFlag = MutableLiveData<Boolean>() //mi aggiorna sempre se il tracking è attivo o meno o se ci sono aggiornamenti
     val trackingRunningFlag: LiveData<Boolean> get() = _trackingRunningFlag
 
-
+    // LiveData che rappresenta la lista dei luoghi associati al viaggio corrente
     val tripPlaces: LiveData<List<Place>> = _tripId.switchMap { id ->
         placeRepository.getPlacedByIdTrip(id)
     }
 
     fun updateLocation(loc: LatLng) {
-        _location.value = loc
+        _location.value = loc//Aggiorna la LiveData con la nuova posizione dell’utente
     }
 
+    /*
+      Avvia un nuovo viaggio: inserisce il luogo iniziale, crea il record Trip, registra il primo
+      punto nel viaggio (TripPlace), aggiorna lo stato interno del ViewModel
+     */
     @RequiresApi(Build.VERSION_CODES.O)
     fun startTrip(place: Place, type: TripType, callback: (tripId: Int) -> Unit) {
         val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
@@ -88,7 +98,10 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-
+    /*
+    Ferma il viaggio attivo: aggiorna la data di fine viaggio,
+    registra l’ultima posizione e aggiorna lo stato interno
+     */
     @RequiresApi(Build.VERSION_CODES.O)
     fun stopTrip(place: Place) {
         val todayDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
@@ -96,7 +109,7 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             placeRepository.insert(place)
             val pId = placeRepository.getPlaceId(place)
-            val tId = _tripId.value ?: return@launch
+            val tId = _tripId.value ?: return@launch //Se il tripId non è valido c'è un problema
             tripRepository.updateTrip(tId, place.name, todayDate)
             tripPlaceRepository.insertTripPlace(TripPlace(tripId = tId, placeId = pId, time_stamp = java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(java.time.LocalDateTime.now())))
             _isTripRunning.postValue(false)
@@ -130,7 +143,7 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         input.hint = "Scrivi qui la tua nota"
         builder.setView(input)
 
-        // Configura i pulsanti del dialog
+        // Configurazione dei pulsanti del dialog
         builder.setPositiveButton("OK") { dialog, _ ->
             val pId = _placeId.value
             val tId = _tripId.value
@@ -159,29 +172,25 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         builder.create().show()
     }
 
-    fun getPlacesOfTrip(tripId: Int): LiveData<List<Place>> {
-        return placeRepository.getPlacedByIdTrip(tripId)
-    }
-
-    fun existTripPlace(tripId: Int, placeId: Int): Boolean {
-        return tripRepository.existsTripWithId(tripId) && placeRepository.existsPlaceById(placeId)
-    }
-
     //Funzione che richiama la query per verificare che laa stessa foto non sia già stata aggiunta
     //allo stesso viaggio anche se in posti differenti così da evitare duplicati
     fun existPhoto(id_trip: Int, image_path: String): Boolean {
         return photoRepository.existsPhoto(id_trip, image_path)
     }
 
-    //Metodo che prendendo la variabile tracking_running mi dice se il tracciamento è ancora attivo
+    //Metodo che prendendo la variabile tracking_running dalle sharedPrefererence
+    // e mi dice se il tracciamento è ancora attivo
     fun refreshTrackingFlag(context: Context) {
         val prefs = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
         _trackingRunningFlag.postValue(prefs.getBoolean("tracking_running", false))
     }
 
+    //Ottiene la posizione corrente dell’utente e la converte in un oggetto Place,
+    //includendo anche il nome della città (tramite Geocoder)
     fun getCurrentPlace(callback: (Place?) -> Unit) {
         val fusedClient = LocationServices.getFusedLocationProviderClient(application)
 
+        // Verifica se i permessi per accedere alla posizione precisa sono stati concessi
         if (ActivityCompat.checkSelfPermission(
                 application,
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -193,8 +202,9 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        fusedClient.lastLocation.addOnSuccessListener { location ->
+        fusedClient.lastLocation.addOnSuccessListener { location ->//questo metodo asincorno recupera l'ultima posizione
             if (location != null) {
+                // Prova a ottenere il nome della città usando Geocoder, se fallisce usa Unknown (limite di Geocoder)
                 val cityName = try {
                     Geocoder(application, Locale.getDefault())
                         .getFromLocation(location.latitude, location.longitude, 1)
@@ -205,12 +215,13 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
                     "Unknown"
                 }
 
+                // usiamo la callback per ottenere l’oggetto Place in maniera sicura e asincrona,
+                // cioè solo quando la posizione dell’utente è effettivamente disponibile
                 callback(
                     Place(
                         id = 0,
                         latitudine = String.format(Locale.US, "%.4f", location.latitude).toDouble(),
-                        longitudine = String.format(Locale.US, "%.4f", location.longitude)
-                            .toDouble(),
+                        longitudine = String.format(Locale.US, "%.4f", location.longitude).toDouble(),
                         name = cityName
                     )
                 )

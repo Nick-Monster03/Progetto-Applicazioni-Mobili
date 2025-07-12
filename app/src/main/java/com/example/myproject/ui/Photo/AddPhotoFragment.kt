@@ -32,12 +32,14 @@ class AddPhotoFragment : Fragment() {
 
         photoViewModel = ViewModelProvider(this)[PhotoViewModel::class.java]
 
+        //Configuro il RecyclerView esterno, cioè quello con i gruppi di foto divisi in viaggi
         val outerRecycler = view.findViewById<RecyclerView>(R.id.outer_recycler)
         outerRecycler.layoutManager = LinearLayoutManager(requireContext())
 
         val adapter = GroupedPhotoAdapter(emptyList(), photoViewModel, viewLifecycleOwner, viewLifecycleOwner.lifecycleScope)
         outerRecycler.adapter = adapter
 
+        //Osservo tutti i viaggi e filtro solo quelli che hanno almeno una foto
         photoViewModel.getAllTrips().observe(viewLifecycleOwner) { trips ->
             val coroutineScope = viewLifecycleOwner.lifecycleScope
             coroutineScope.launch {

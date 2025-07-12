@@ -25,9 +25,12 @@ class ProgramTripWorker(appContext: Context, workerParams: WorkerParameters) : W
         Log.d("DAILY_WORKER", "Worker avviato - controllo viaggi pianificati per oggi")
 
         val repository = TripPlanRepository(applicationContext as Application)
+
+        // Recupera la data odierna nel formato usato dal database
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val today = sdf.format(Date())
 
+        // Recupera tutti i piani di viaggio aventi come data di partenza la data odierna
         val plans = repository.getAllPlansForDate(today)
 
         if (plans.isNotEmpty()) {
@@ -41,7 +44,8 @@ class ProgramTripWorker(appContext: Context, workerParams: WorkerParameters) : W
                 showNotification(msg)
             }
         } else {
-            Log.d("DAILY_WORKER", "Nessun viaggio pianificato per oggi")
+            //DEBUG
+            //Log.d("DAILY_WORKER", "Nessun viaggio pianificato per oggi")
         }
 
         return Result.success()
@@ -60,6 +64,7 @@ class ProgramTripWorker(appContext: Context, workerParams: WorkerParameters) : W
             notificationManager.createNotificationChannel(channel)
         }
 
+        //Intent per aprire l’app alla MainActivity quando si clicca la notifica
         val intent = Intent(applicationContext, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(applicationContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 

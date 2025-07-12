@@ -25,6 +25,7 @@ class PhotoAdapter : RecyclerView.Adapter<PhotoViewHolder>() {
         val photo = photos[position]
         val file = File(photo.image_path)
 
+        // Se il file esiste, carica e mostra l'immagine, altrimenti mostra un placeholder
         if (file.exists()) {
             val bitmap = BitmapFactory.decodeFile(photo.image_path)
             if (bitmap != null) {

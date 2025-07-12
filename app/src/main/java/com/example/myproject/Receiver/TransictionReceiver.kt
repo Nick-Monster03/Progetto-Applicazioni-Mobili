@@ -23,6 +23,7 @@ class TransictionReceiver : BroadcastReceiver() {
 
         val result = ActivityTransitionResult.extractResult(intent) ?: return
 
+        // Itera su tutti gli eventi di transizione ricevuti determinandone il tipo
         result.transitionEvents.forEach { event ->
             val activity = when (event.activityType) {
                 DetectedActivity.WALKING -> "WALKING"
@@ -36,23 +37,18 @@ class TransictionReceiver : BroadcastReceiver() {
                 return@forEach
             }
 
+            // Determina se l'utente ha appena iniziato (ENTER) o terminato (EXIT) quell’attività
             val transition = if (event.transitionType == ActivityTransition.ACTIVITY_TRANSITION_ENTER) {
                 "ENTER"
             } else {
                 "EXIT"
             }
 
-            // Log per debug
-            Log.d("ACTIVITY_RECOGNITION", "Evento: $activity $transition")
+            //DEBUG
+            //Log.d("ACTIVITY_RECOGNITION", "Evento: $activity $transition")
+            //Toast.makeText(context, "Transizione: $activity $transition", Toast.LENGTH_SHORT).show()
 
-            // Toast per vedere in tempo reale
-            Toast.makeText(
-                context,
-                "Transizione: $activity $transition",
-                Toast.LENGTH_SHORT
-            ).show()
-
-            // Mostra notifica SOLO quando entra in WALKING
+            //Mostra notifica SOLO quando l’attività viene avviata (ENTER)
             if (event.transitionType == ActivityTransition.ACTIVITY_TRANSITION_ENTER) {
                 showNotification(context)
             }

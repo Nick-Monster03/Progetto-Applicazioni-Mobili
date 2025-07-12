@@ -17,6 +17,8 @@ import com.example.myproject.ui.TripsStorical.MapTrip.TripMapFragment
 class TripAdapter (private val viewModel: TripViewModel) : Adapter<TripViewHolder>() {
 
     private var trips: List<Trip> = listOf()
+
+    //Crea un nuovo ViewHolder per ogni elemento (trip_card.xml) del RecyclerView
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TripViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.trip_card, parent, false)
         return TripViewHolder(view)
@@ -29,6 +31,9 @@ class TripAdapter (private val viewModel: TripViewModel) : Adapter<TripViewHolde
             holder.textRoute.text = "${trip.start} -> ${trip.destination}"
             holder.textType.text = trip.type.toString()
             holder.textDescription.text = trip.description ?: ""
+
+            //Al click del bottone Si apre la schermata relaztiva alle note tramite action
+            //e viene passato come argomento nel bundle l'id del viaggio cliccato
             holder.buttonNotes.findViewById<Button>(R.id.btn_show_notes).setOnClickListener {
                 //DEBUG
                 //Toast.makeText(holder.itemView.context, "Mostra note", Toast.LENGTH_SHORT).show()
@@ -48,9 +53,8 @@ class TripAdapter (private val viewModel: TripViewModel) : Adapter<TripViewHolde
                 holder.textDistance.text = "Distanza: %.1f km".format(distanzaKm)
             }
 
-
-
-
+            //Al click del ViewHolder si apre la schermata della mappa relativa al viaggio tramite action
+            //e anche qui come argomento nel bundle viene passato l'id del viaggio cliccato
             holder.itemView.setOnClickListener {
                 val context = holder.itemView.context
                 val bundle = Bundle().apply {
@@ -67,6 +71,8 @@ class TripAdapter (private val viewModel: TripViewModel) : Adapter<TripViewHolde
         }
 
     }
+
+    //Metodo per aggiornare la lista dei viaggi e notificare il cambiamento al RecyclerView
     fun submitList(newTrips: List<Trip>) {
         trips = newTrips
         notifyDataSetChanged()

@@ -54,51 +54,52 @@ class DescriptionFragment : Fragment() {
         btn_filter.setOnClickListener(View.OnClickListener {
             filtraViaggi()
         })
-        // Crea ViewModel con factory
+        //Crea ViewModel con factory
         val repository = TripRepository(requireActivity().application)
         val factory = TripViewModel.TripViewModelFactory(repository)
         tripViewModel = ViewModelProvider(this, factory)[TripViewModel::class.java]
 
-        // Inizializza l'adapter
+        //Inizializza l'adapter
         tripAdapter = TripAdapter(tripViewModel)
 
-        // Imposta RecyclerView
+        //Imposta RecyclerView
         val recyclerView = view.findViewById<RecyclerView>(R.id.recycler_trips)
         recyclerView.adapter = tripAdapter
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
 
-        // Osserva LiveData
+        //Osserva LiveData
         tripViewModel.getAllTrips().observe(viewLifecycleOwner) { trips ->
             tripAdapter.submitList(trips)
         }
     }
 
+    //Applico il filtro in base a tipo e intervallo di date
     @RequiresApi(Build.VERSION_CODES.O)
     fun filtraViaggi() {
         val tipo = spinnerTipo.selectedItem.toString()
         val start_date = editDataStart.text.toString()
         val destination_date = if (editDataDestination.text.toString().isNullOrEmpty()) LocalDate.now().toString() else editDataDestination.text.toString()
 
-        // Controllo formato date
+        //Controllo formato date
         if (!isValidDateFormat(start_date) || !isValidDateFormat(destination_date)) {
             showAlert("Formato date non corretto")
             return
         }
 
-        // Controllo incongruenza tra date
+        //Controllo incongruenza tra date
         if (LocalDate.parse(start_date).isAfter(LocalDate.parse(destination_date))) {
             showAlert("La data di partenza non può essere posteriore a quella di destinazione")
             return
         }
 
-        // Operazioni se i controlli sono superati
+        //Operazioni se i controlli sono superati
         tripViewModel.filtraViaggi(tipo, start_date, destination_date)
             .observe(viewLifecycleOwner) { trips ->
                 tripAdapter.submitList(trips)
             }
     }
 
-    // Funzione per verificare il formato delle date
+    //Funzione per verificare il formato delle date se rispetta il parsing
     @RequiresApi(Build.VERSION_CODES.O)
     private fun isValidDateFormat(date: String): Boolean {
         return try {
@@ -109,7 +110,7 @@ class DescriptionFragment : Fragment() {
         }
     }
 
-    // Funzione per mostrare un AlertDialog
+    //Funzione per mostrare un AlertDialog in caso di errore
     private fun showAlert(message: String) {
         androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle("Errore")
@@ -117,7 +118,4 @@ class DescriptionFragment : Fragment() {
             .setPositiveButton("OK", null)
             .show()
     }
-        // Implementa la logica per filtrare i viaggi
-        // Ad esempio, puoi mostrare un dialogo o un menu a discesa per selezionare i filtri
-        // e poi aggiornare l'adapter con i risultati filtrati.
 }

@@ -44,7 +44,7 @@ class ProgramTripFragment : Fragment() {
 
         btnSave.setOnClickListener {
             lifecycleScope.launch {
-                //recupero variabili
+                //recupero variabili scritte dall'utente
                 val tripType = spinner.selectedItem.toString()
                 val startDate = editStartDate.text.toString()
                 val endDate = editEndDate.text.toString()
@@ -52,14 +52,15 @@ class ProgramTripFragment : Fragment() {
                 val endPlace = editEndPlace.text.toString().trim()
                 val description = editDescription.text.toString()
 
+                // Validazione dei dati (formato date, campi obbligatori, ecc.)
                 val validationError = viewModel.validateTripPlanInput(tripType, startDate, endDate, startPlace, endPlace)
 
                 if (validationError != null) {
-                    showError(validationError)
+                    showError(validationError)//metodo per mostrare l'errore come dialog
                     return@launch
                 }
 
-                // Controllo overlapping su Dispatcher.IO
+                //Controllo che non ci siano sovrapposizioni con altri viaggi programmati
                 val hasOverlap = withContext(Dispatchers.IO) {
                     viewModel.hasOverlappingTrip(startDate, endDate)
                 }
@@ -83,7 +84,7 @@ class ProgramTripFragment : Fragment() {
                     description = description,
                     type = type
                 )
-                // Aggiungo il piano del viaggio al database, ma mi assicuro che sia fatto con successo
+                // Aggiungo il piano del viaggio al database e mi assicuro che sia fatto con successo
                 try {
                     withContext(Dispatchers.IO) {
                         viewModel.addTripPlan(plan)

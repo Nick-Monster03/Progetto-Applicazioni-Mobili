@@ -20,14 +20,18 @@ class InactivityWorker(appContext: Context, workerParams: WorkerParameters) : Wo
     override fun doWork(): Result {
         Log.d("WORKER", "Worker avviato")
 
+        //Recupera l’ultimo viaggio terminato dal database
         val repository = TripRepository(applicationContext.applicationContext as Application)
         val lastTrip = repository.getMostRecentEndedTrip()
 
+        // Se non ci sono viaggi, termina con successo senza fare nulla
         if (lastTrip == null) {
-            Log.d("WORKER", "Nessun viaggio trovato, esco")
+            //DEBUG
+            //Log.d("WORKER", "Nessun viaggio trovato, worker terminato con successo")
             return Result.success()
         }
 
+        //Parsing della data di fine dell’ultimo viaggio per facilitare le operazioni
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val lastEndDate = try {
             sdf.parse(lastTrip.endDate)
@@ -41,7 +45,7 @@ class InactivityWorker(appContext: Context, workerParams: WorkerParameters) : Wo
         val daysElapsed = ((Date().time - lastEndDate.time) / (1000 * 60 * 60 * 24)).toInt()
         //Log.d("WORKER", "Giorni trascorsi: $daysElapsed")
 
-        //DEBUG per inviare la notifica anche se c' è stato un viaggio a distanza di qualche minuto
+        //DEBUG per inviare la notifica anche se c' è stato un viaggio a distanza di qualche minuto così datestarne il funzionamento
         //if (daysElapsed >= 0) {
         //Log.d("WORKER", "Invio notifica")
         if (daysElapsed >= 30) {
@@ -78,7 +82,8 @@ class InactivityWorker(appContext: Context, workerParams: WorkerParameters) : Wo
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(false)
 
-        //Log.d("WORKER", "Notifica costruita, invio...")
+        //DEBUG
+        // Log.d("WORKER", "Notifica costruita, invio...")
         notificationManager.notify(1001, builder.build())
     }
 }

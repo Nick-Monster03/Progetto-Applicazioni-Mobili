@@ -15,6 +15,7 @@ class ProgramTripViewModel(private val tripPlanRepository: TripPlanRepository) :
         return tripPlanRepository.insertTripPlan(plan)
     }
 
+    //Verifica se esistono piani di viaggio già programmati che si sovrappongono alle date fornite
     suspend fun hasOverlappingTrip(start: String, end: String): Boolean {
         val plans = tripPlanRepository.getAllTripPlansRaw()
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
@@ -23,6 +24,7 @@ class ProgramTripViewModel(private val tripPlanRepository: TripPlanRepository) :
         return plans.any {
             val existingStart = dateFormat.parse(it.startDate)
             val existingEnd = dateFormat.parse(it.endDate)
+            //La condizione restituisce true se c'è almeno una sovrapposizione tra due intervalli di date
             !(newEnd.before(existingStart) || newStart.after(existingEnd))
         }
     }
@@ -44,6 +46,7 @@ class ProgramTripViewModel(private val tripPlanRepository: TripPlanRepository) :
             isLenient = false
         }
 
+        //Parsing delle date, con controllo di formato
         val startDateParsed = try {
             dateFormat.parse(startDate)
         } catch (e: Exception) {
@@ -63,12 +66,13 @@ class ProgramTripViewModel(private val tripPlanRepository: TripPlanRepository) :
             set(Calendar.MILLISECOND, 0)
         }.time
 
+        // Controlli generici validi per tutti i tipi di viaggio
         if (startDateParsed.before(today)) return "La data di partenza non può essere nel passato"
         if (endDateParsed.before(startDateParsed)) return "La data di arrivo non può essere precedente alla partenza"
 
         if (endPlace.isBlank()) return "Inserisci un luogo di destinazione"
 
-        // Vincoli specifici
+        //Vincoli sui tipi di viaggio da rispettare
         if (type == TripType.LOCAL) {
             if (startPlace.isNullOrBlank()) return "Inserisci un luogo di partenza per un viaggio locale"
             if (startPlace.trim() != endPlace.trim()) return "Per un viaggio locale le città devono coincidere"
@@ -79,7 +83,7 @@ class ProgramTripViewModel(private val tripPlanRepository: TripPlanRepository) :
             if (startDate != endDate) return "Per un'escursione le date devono coincidere"
         }
 
-        return null
+        return null //Nessun errore, allora input valido
     }
 
     class Factory(private val repo: TripPlanRepository) : ViewModelProvider.Factory {

@@ -38,7 +38,10 @@ class MonumentGeofenceReceiver : BroadcastReceiver() {
         }
 
         val transitionType = geofencingEvent.geofenceTransition
+        //Ottiene la lista dei geofence che hanno generato l’evento
         val triggeringGeofences = geofencingEvent.triggeringGeofences
+
+        // Crea una stringa con i nomi dei geofence coinvolti
         val ids = triggeringGeofences?.joinToString(", ") { it.requestId }
 
         val message = when (transitionType) {
@@ -73,6 +76,7 @@ class MonumentGeofenceReceiver : BroadcastReceiver() {
             .setAutoCancel(true)
             .build()
 
+        //Invio della notifica (con ID casuale basato sul timestamp)
         manager.notify(System.currentTimeMillis().toInt(), notification)
     }
 }

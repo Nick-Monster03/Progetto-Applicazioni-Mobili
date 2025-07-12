@@ -20,10 +20,16 @@ import java.time.format.DateTimeFormatter
 @RequiresApi(Build.VERSION_CODES.O)
 class StatisticsViewModel(private val repository: TripRepository) : ViewModel() {
 
+    // LiveData che rappresenta il filtro temporale attualmente selezionato (di default ALL)
     private val _periodFilter = MutableLiveData<PeriodFilter>(PeriodFilter.ALL)
     val periodFilter: LiveData<PeriodFilter> = _periodFilter
+
+    // LiveData che contiene la lista dei viaggi filtrati in base al periodo selezionato
     val filteredTrips = MediatorLiveData<List<Trip>>()
+
     val allPlaces = MutableLiveData<List<Place>>()
+
+    // LiveData che contiene la lista dei punti (LatLng) per generare una heatmap
     private val _heatmapPoints = MutableLiveData<List<LatLng>>()
     val heatmapPoints: LiveData<List<LatLng>> = _heatmapPoints
 
@@ -38,7 +44,10 @@ class StatisticsViewModel(private val repository: TripRepository) : ViewModel() 
     private fun loadTripsForFilter(filter: PeriodFilter) {
         val now = LocalDate.now()
         /* versione precedente dove 1 mese equivale a 30 giorni e non al singolo mese specifico
-        ad esempio se siamo al 3 luglio, mentre prima filtrava fino al 3 giugno, ora fino al 30 giugno non compreso         val now = LocalDate.now()
+        ad esempio supponiamo che oggi sia il 3 luglio, mentre prima filtrava fino al 3 giugno,
+        ora fino al 30 giugno non compreso
+
+    val now = LocalDate.now()
 
     val (fromDate, toDate) = when (filter) {
         PeriodFilter.LAST_1_MONTH -> {
@@ -105,11 +114,7 @@ class StatisticsViewModel(private val repository: TripRepository) : ViewModel() 
         val formattedFrom = fromDate?.format(DateTimeFormatter.ISO_DATE)
         val formattedTo = toDate?.format(DateTimeFormatter.ISO_DATE)
 
-        val source = repository.getFilteredTrips(
-            type = null,
-            fromDate = formattedFrom,
-            toDate = formattedTo
-        )
+        val source = repository.getFilteredTrips(type = null, fromDate = formattedFrom, toDate = formattedTo)
 
         filteredTrips.addSource(source) { trips ->
             filteredTrips.value = trips
@@ -127,6 +132,8 @@ class StatisticsViewModel(private val repository: TripRepository) : ViewModel() 
         return repository.getPlacedById(tripId)
     }
 
+    //Calcola la distanza totale percorsa in un viaggio in base alla lista di Place
+    //La distanza è in chilometri, calcolata usando Location.distanceBetween
     fun calculateTotalDistance(places: List<Place>): Double {
         if (places.size < 2){
             return 0.0
@@ -151,6 +158,8 @@ class StatisticsViewModel(private val repository: TripRepository) : ViewModel() 
 
     }
 
+    //Costruisce la lista di tutti i punti geografici (LatLng) relativi ai Place di ogni viaggio,
+    //utile per generare una heatmap
     fun computeHeatmapPoints(trips: List<Trip>) {
         viewModelScope.launch {
             val allPoints = mutableListOf<LatLng>()
@@ -167,7 +176,7 @@ class StatisticsViewModel(private val repository: TripRepository) : ViewModel() 
         }
     }
 
-
+    //Funzione di supporto che sospende l’esecuzione finché un LiveData non emette un valore non-null
     private suspend fun <T> suspendUntilValue(liveData: LiveData<T>): T? {
         return kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
            // Crea un observer che osserva il valore del LiveData.
